@@ -26,6 +26,7 @@ def write_result(path: Path, result: TaskResult) -> None:
     with _write_lock:
         with open(path, "a") as f:
             f.write(line + "\n")
+            f.flush()
 
 
 def read_results(path: Path) -> list[TaskResult]:

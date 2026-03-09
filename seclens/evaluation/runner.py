@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from engine_harness import (
     CostTracker,
     ListDirTool,
+    EngineLoopResult,
     EngineLoop,
     ModelAdapter,
     ReadFileTool,
@@ -53,7 +54,7 @@ def evaluate_task(
             return _evaluate_layer1(task, adapter, config, run_metadata)
         return _evaluate_layer2(task, adapter, config, run_metadata, sandbox_manager)
     except Exception as exc:  # noqa: BLE001
-        return _error_result(task, run_metadata, str(exc))
+        return _error_result(task, run_metadata, f"{type(exc).__name__}: {exc}")
 
 
 def _evaluate_layer1(
@@ -158,7 +159,7 @@ def _build_run_metadata(config: RunConfig) -> RunMetadata:
 
 
 def _build_metrics(
-    result: "EngineLoop",
+    result: "EngineLoopResult",
     cost_tracker: CostTracker,
     tool_logger: ToolLogger | None = None,
 ) -> TaskMetrics:

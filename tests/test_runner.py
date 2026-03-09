@@ -263,7 +263,7 @@ class TestEvaluateTaskLayer1:
         adapter = MagicMock()
         result = evaluate_task(positive_task, adapter, config)
 
-        assert result.error == "network error"
+        assert result.error == "ConnectionError: network error"
         assert result.scores.verdict == 0
         assert result.scores.earned == 0
 
@@ -398,7 +398,7 @@ class TestEvaluateTaskLayer2:
         adapter = MagicMock()
         result = evaluate_task(positive_task, adapter, config_layer2)
 
-        assert result.error == "LLM error"
+        assert result.error == "RuntimeError: LLM error"
         mock_sandbox.cleanup.assert_called_once_with("test-pos-001")
 
     @patch("seclens.evaluation.runner.EngineLoop")

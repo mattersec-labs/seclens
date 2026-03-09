@@ -22,7 +22,7 @@ class TaskScore(BaseModel):
     cwe: Literal[0, 1]
     location: Literal[0, 1]
     earned: int = Field(ge=0, le=3)
-    max_task_points: int = Field(ge=1, le=3)
+    max_task_points: Literal[1, 3]
 
 
 class TaskMetrics(BaseModel):

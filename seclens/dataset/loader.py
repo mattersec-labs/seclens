@@ -8,6 +8,7 @@ import datasets as hf_datasets
 
 from seclens.schemas.task import Task, TaskType
 
+
 def load_dataset(dataset_string: str) -> list[Task]:
     """Load evaluation tasks from HuggingFace or local JSONL.
 
@@ -111,4 +112,4 @@ def _parse_hf_string(dataset_string: str) -> tuple[str, str, str | None]:
     else:
         repo, split = dataset_string.rsplit(":", 1)
 
-    return repo.strip(), split.strip(), version
+    return repo.strip(), split.strip(), version.strip() if version else None
