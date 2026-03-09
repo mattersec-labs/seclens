@@ -85,12 +85,12 @@ def negative_task() -> Task:
 
 @pytest.fixture()
 def config() -> RunConfig:
-    return RunConfig(model="test/model", layer=1, mode="guided")
+    return RunConfig(model="test/model", dataset="test.jsonl", layer=1, mode="guided")
 
 
 @pytest.fixture()
 def config_layer2() -> RunConfig:
-    return RunConfig(model="test/model", layer=2, mode="guided", max_turns=5)
+    return RunConfig(model="test/model", dataset="test.jsonl", layer=2, mode="guided", max_turns=5)
 
 
 def _make_loop_result(content: str, turns: int = 1) -> EngineLoopResult:
@@ -111,8 +111,7 @@ def _make_loop_result(content: str, turns: int = 1) -> EngineLoopResult:
 
 class TestRunConfig:
     def test_defaults(self) -> None:
-        cfg = RunConfig(model="anthropic/claude-sonnet-4-20250514")
-        assert cfg.dataset == "sidds020/SecLens:test"
+        cfg = RunConfig(model="anthropic/claude-sonnet-4-20250514", dataset="sidds020/SecLens:test")
         assert cfg.prompt == "base"
         assert cfg.layer == 2
         assert cfg.mode == "guided"
@@ -138,15 +137,19 @@ class TestRunConfig:
 
     def test_invalid_layer(self) -> None:
         with pytest.raises(Exception):
-            RunConfig(model="test", layer=3)
+            RunConfig(model="test", dataset="x.jsonl", layer=3)
 
     def test_invalid_mode(self) -> None:
         with pytest.raises(Exception):
-            RunConfig(model="test", mode="invalid")
+            RunConfig(model="test", dataset="x.jsonl", mode="invalid")
 
     def test_min_max_turns(self) -> None:
         with pytest.raises(Exception):
-            RunConfig(model="test", max_turns=0)
+            RunConfig(model="test", dataset="x.jsonl", max_turns=0)
+
+    def test_dataset_required(self) -> None:
+        with pytest.raises(Exception):
+            RunConfig(model="test")
 
 
 class TestBuildRunMetadata:

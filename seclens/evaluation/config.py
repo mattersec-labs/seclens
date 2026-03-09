@@ -12,7 +12,7 @@ class RunConfig(BaseModel):
     """Configuration for an evaluation run."""
 
     model: str
-    dataset: str = "sidds020/SecLens:test"
+    dataset: str
     prompt: str = "base"
     layer: Literal[1, 2] = 2
     mode: Literal["guided", "open"] = "guided"

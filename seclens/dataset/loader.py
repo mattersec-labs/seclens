@@ -8,10 +8,7 @@ import datasets as hf_datasets
 
 from seclens.schemas.task import Task, TaskType
 
-DEFAULT_DATASET = "sidds020/SecLens:test"
-
-
-def load_dataset(dataset_string: str = DEFAULT_DATASET) -> list[Task]:
+def load_dataset(dataset_string: str) -> list[Task]:
     """Load evaluation tasks from HuggingFace or local JSONL.
 
     Format detection:
