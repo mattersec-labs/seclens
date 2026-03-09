@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Annotated, Optional
 
 import typer
-from engine_harness import WorkerPool, create_adapter
+from engine_harness import create_adapter
 from rich.console import Console
 
 from seclens.dataset.loader import load_dataset
@@ -15,6 +15,7 @@ from seclens.evaluation.config import RunConfig
 from seclens.evaluation.runner import evaluate_task
 from seclens.results.io import get_completed_ids, write_result
 from seclens.sandbox.manager import SandboxManager
+from seclens.worker import WorkerPool
 
 console = Console()
 
