@@ -18,7 +18,7 @@ class ParseStatus(StrEnum):
 
 
 class EvidenceOutput(BaseModel):
-    """Evidence details from model response — logged not scored in v1."""
+    """Source, sink, and data-flow evidence supporting the finding."""
 
     source: str | None = None
     sink: str | None = None
@@ -26,10 +26,10 @@ class EvidenceOutput(BaseModel):
 
 
 class ParsedOutput(BaseModel):
-    """Structured output parsed from model response.
+    """Security audit finding.
 
-    All fields are optional — LLM returns null for cwe/location on
-    negative verdicts. ``vulnerable=None`` indicates a parse failure.
+    Set ``vulnerable`` to true or false. Provide ``cwe``, ``location``,
+    and ``evidence`` when a vulnerability is found; use null otherwise.
     """
 
     vulnerable: bool | None = None

@@ -34,7 +34,7 @@ class Target(BaseModel):
 
 
 class Location(BaseModel):
-    """Code location — shared between GroundTruth and ParsedOutput for IoU calculation."""
+    """File path and line range identifying a code region."""
 
     file: str
     line_start: int

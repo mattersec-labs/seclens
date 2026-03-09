@@ -60,9 +60,16 @@ def generate_output_format() -> str:
     """
     schema = ParsedOutput.model_json_schema(mode="serialization")
 
-    # Strip extraneous top-level keys
+    # Strip internal class names and implementation details from schema
     schema.pop("title", None)
     schema.pop("type", None)
+    for def_obj in schema.get("$defs", {}).values():
+        def_obj.pop("title", None)
+    for prop in schema.get("properties", {}).values():
+        prop.pop("title", None)
+
+    # Rename programmatic $defs keys to neutral names
+    _rename_schema_def(schema, "EvidenceOutput", "Evidence")
 
     schema_str = json.dumps(schema, indent=2)
 
@@ -96,6 +103,30 @@ def _build_template_vars(task: Task, mode: str, code_block: str) -> dict[str, st
         "code_block": code_block,
         "output_format": generate_output_format(),
     }
+
+
+def _rename_schema_def(schema: dict, old: str, new: str) -> None:
+    """Rename a key in $defs and update all $ref pointers."""
+    defs = schema.get("$defs", {})
+    if old in defs:
+        defs[new] = defs.pop(old)
+    old_ref = f"#/$defs/{old}"
+    new_ref = f"#/$defs/{new}"
+    _replace_refs(schema, old_ref, new_ref)
+
+
+def _replace_refs(obj: dict | list, old_ref: str, new_ref: str) -> None:
+    """Recursively replace $ref values in a JSON schema."""
+    if isinstance(obj, dict):
+        if obj.get("$ref") == old_ref:
+            obj["$ref"] = new_ref
+        for v in obj.values():
+            if isinstance(v, (dict, list)):
+                _replace_refs(v, old_ref, new_ref)
+    elif isinstance(obj, list):
+        for item in obj:
+            if isinstance(item, (dict, list)):
+                _replace_refs(item, old_ref, new_ref)
 
 
 def _load_preset(preset_name: str) -> dict[str, str]:
