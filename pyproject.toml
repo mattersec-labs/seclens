@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=78.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seclens"
+version = "0.1.0"
+description = "LLM security vulnerability detection benchmark"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "MIT"}
+dependencies = [
+    "engine-harness[all]",
+    "typer>=0.24",
+    "rich>=14.0",
+    "pydantic>=2.12",
+    "numpy>=2.4",
+    "datasets>=4.6",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0",
+    "pytest-cov>=7.0",
+    "ruff>=0.15",
+    "python-dotenv>=1.2",
+]
+
+[project.scripts]
+seclens = "seclens.cli.main:app"
+
+[tool.setuptools.packages.find]
+include = ["seclens*"]
+
+[tool.setuptools.package-data]
+seclens = ["py.typed", "prompts/*.yaml"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not integration'"
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
