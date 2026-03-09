@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Optional
@@ -9,33 +10,64 @@ from typing import Annotated, Optional
 import typer
 from engine_harness import create_adapter
 from rich.console import Console
+from rich.live import Live
+from rich.panel import Panel
+from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, TimeElapsedColumn
+from rich.table import Table
 
 from seclens.dataset.loader import load_dataset
 from seclens.evaluation.config import RunConfig
-from seclens.evaluation.runner import evaluate_task
-from seclens.results.io import get_completed_ids, write_result
+from seclens.evaluation.runner import EvalOutput, evaluate_task
+from seclens.results.io import get_completed_ids, read_results, write_result
 from seclens.sandbox.manager import SandboxManager
+from seclens.schemas.task import Task
 from seclens.worker import WorkerPool
 
 console = Console()
 
+OUT_DIR = Path("out")
+
 
 def run_command(
     model: Annotated[str, typer.Option(
-        "--model", "-m", help="Model identifier (e.g. anthropic/claude-sonnet-4-20250514)",
+        "--model", "-m",
+        help="Model identifier (e.g. anthropic/claude-sonnet-4-20250514)",
     )],
-    dataset: Annotated[str, typer.Option("--dataset", "-d", help="Dataset string (HF repo:split) or local JSONL path")],
-    prompt: Annotated[str, typer.Option("--prompt", "-p", help="Prompt preset name or custom YAML path")] = "base",
-    layer: Annotated[int, typer.Option("--layer", "-l", help="Evaluation layer (1=code-in-prompt, 2=tool-use)")] = 2,
-    mode: Annotated[str, typer.Option("--mode", help="Evaluation mode (guided or open)")] = "guided",
-    workers: Annotated[int, typer.Option("--workers", "-w", help="Number of parallel workers")] = 5,
-    out: Annotated[Optional[Path], typer.Option("--out", "-o", help="Output JSONL path")] = None,
-    max_cost: Annotated[Optional[float], typer.Option("--max-cost", help="Maximum budget in USD")] = None,
-    max_turns: Annotated[int, typer.Option("--max-turns", help="Maximum LLM turns per task")] = 20,
-    resume: Annotated[bool, typer.Option("--resume", help="Resume from existing output file")] = False,
-    seed: Annotated[int, typer.Option("--seed", help="Random seed for reproducibility")] = 42,
+    dataset: Annotated[str, typer.Option(
+        "--dataset", "-d",
+        help="Dataset string (HF repo:split) or local JSONL path",
+    )],
+    prompt: Annotated[str, typer.Option(
+        "--prompt", "-p", help="Prompt preset name or custom YAML path",
+    )] = "base",
+    layer: Annotated[int, typer.Option(
+        "--layer", "-l",
+        help="Evaluation layer (1=code-in-prompt, 2=tool-use)",
+    )] = 2,
+    mode: Annotated[str, typer.Option(
+        "--mode", help="Evaluation mode (guided or open)",
+    )] = "guided",
+    workers: Annotated[int, typer.Option(
+        "--workers", "-w", help="Number of parallel workers",
+    )] = 5,
+    max_cost: Annotated[Optional[float], typer.Option(
+        "--max-cost", help="Maximum budget in USD",
+    )] = None,
+    max_turns: Annotated[int, typer.Option(
+        "--max-turns", help="Maximum LLM turns per task",
+    )] = 200,
+    resume: Annotated[bool, typer.Option(
+        "--resume", help="Resume from existing output file",
+    )] = False,
+    seed: Annotated[int, typer.Option(
+        "--seed", help="Random seed for reproducibility",
+    )] = 42,
     dry_run: Annotated[bool, typer.Option(
-        "--dry-run", help="Validate config and show task count without running",
+        "--dry-run",
+        help="Validate config and show task count without running",
+    )] = False,
+    debug: Annotated[bool, typer.Option(
+        "--debug", help="Save full message chains to a debug JSONL file",
     )] = False,
 ) -> None:
     """Run an evaluation benchmark against a model."""
@@ -43,7 +75,9 @@ def run_command(
         console.print(f"[red]Invalid layer: {layer}. Must be 1 or 2.[/red]")
         raise typer.Exit(code=1)
     if mode not in ("guided", "open"):
-        console.print(f"[red]Invalid mode: {mode!r}. Must be 'guided' or 'open'.[/red]")
+        console.print(
+            f"[red]Invalid mode: {mode!r}. Must be 'guided' or 'open'.[/red]",
+        )
         raise typer.Exit(code=1)
 
     config = RunConfig(
@@ -56,30 +90,34 @@ def run_command(
         max_cost=max_cost,
         workers=workers,
         seed=seed,
-        output=out,
         resume=resume,
         dry_run=dry_run,
     )
 
-    output_path = config.output or _default_output_path(config)
+    result_filename = _result_filename(config)
+    output_path = OUT_DIR / result_filename
+    debug_path = OUT_DIR / f"debug_{result_filename}" if debug else None
 
-    console.print(f"[bold]Model:[/bold] {config.model}")
-    console.print(f"[bold]Dataset:[/bold] {config.dataset}")
-    console.print(f"[bold]Layer:[/bold] {config.layer} | [bold]Mode:[/bold] {config.mode}")
-    console.print(f"[bold]Output:[/bold] {output_path}")
+    OUT_DIR.mkdir(exist_ok=True)
+
+    # Run config panel
+    _print_config(config, output_path, debug_path)
 
     # Load tasks
     tasks = load_dataset(config.dataset)
-    console.print(f"[bold]Tasks loaded:[/bold] {len(tasks)}")
+    console.print(f"  [bold]Tasks loaded:[/bold] {len(tasks)}")
 
     # Resumability
     completed_ids: set[str] = set()
     if config.resume and output_path.exists():
         completed_ids = get_completed_ids(output_path)
-        console.print(f"[bold]Resuming:[/bold] {len(completed_ids)} tasks already completed")
+        console.print(
+            f"  [bold]Resuming:[/bold] {len(completed_ids)} already done",
+        )
 
     pending_tasks = [t for t in tasks if t.id not in completed_ids]
-    console.print(f"[bold]Tasks to run:[/bold] {len(pending_tasks)}")
+    console.print(f"  [bold]Tasks to run:[/bold] {len(pending_tasks)}")
+    console.print()
 
     if config.dry_run:
         console.print("[yellow]Dry run — exiting without evaluation.[/yellow]")
@@ -90,50 +128,279 @@ def run_command(
         raise typer.Exit()
 
     # Create adapter and sandbox manager
-    adapter = create_adapter(config.model)
+    try:
+        adapter = create_adapter(config.model)
+    except (ValueError, KeyError, ImportError) as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from None
     sandbox_manager = SandboxManager() if config.layer == 2 else None
 
-    # Evaluate tasks
-    def _evaluate(task):  # noqa: ANN001, ANN202
-        result = evaluate_task(task, adapter, config, sandbox_manager=sandbox_manager)
-        write_result(output_path, result)
-        return result
+    results: list = []
+    interrupted = False
 
-    if config.workers == 1:
-        results = []
-        for task in pending_tasks:
-            result = _evaluate(task)
-            results.append(result)
-            _print_task_status(result)
-    else:
-        pool = WorkerPool(num_workers=config.workers)
-        results = pool.run(
-            items=pending_tasks,
-            evaluate_fn=_evaluate,
-            on_complete=_print_task_status,
+    # -----------------------------------------------------------------------
+    # Live display: progress bar + task status table, updated in real-time.
+    # -----------------------------------------------------------------------
+
+    state_lock = threading.Lock()
+    task_states: dict[str, dict[str, str]] = {}
+
+    progress = Progress(
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+    )
+
+    def _build_task_table() -> Table:
+        """Build the task status table from current state."""
+        table = Table(
+            expand=True,
+            show_header=True,
+            header_style="bold",
+            border_style="dim",
         )
+        table.add_column("Status", width=10, no_wrap=True)
+        table.add_column("Task ID", ratio=4)
+        table.add_column("Category", ratio=1)
+        table.add_column("Repository", ratio=1)
+        table.add_column("Language", width=10)
+        table.add_column("Score", width=15, justify="right")
+
+        with state_lock:
+            for state in task_states.values():
+                table.add_row(
+                    state["status"],
+                    state["task_id"],
+                    state["category"],
+                    state["repo"],
+                    state["language"],
+                    state["score"],
+                )
+        return table
+
+    def _build_display() -> Table:
+        """Build combined progress bar + task table as a grid layout."""
+        layout = Table.grid(expand=True)
+        layout.add_row(progress)
+        task_table = _build_task_table()
+        if task_table.row_count:
+            layout.add_row(task_table)
+        return layout
+
+    live: Live | None = None
+    ptask = None
+
+    def _mark_running(task: Task) -> None:
+        task_id_display = task.id
+        if debug and sandbox_manager:
+            task_id_display += (
+                f"\n[dim]{sandbox_manager.base_dir / task.id}[/dim]"
+            )
+
+        with state_lock:
+            task_states[task.id] = {
+                "task_id": task_id_display,
+                "category": task.ground_truth.category,
+                "repo": _repo_name(task.repository.url),
+                "language": task.repository.language,
+                "status": "[cyan]RUNNING[/cyan]",
+                "score": "—",
+            }
+        if live:
+            live.update(_build_display())
+
+    def _evaluate(task: Task):  # noqa: ANN202
+        _mark_running(task)
+        eval_output = evaluate_task(
+            task, adapter, config, sandbox_manager=sandbox_manager,
+        )
+        write_result(output_path, eval_output.result)
+        if debug_path:
+            _write_debug(debug_path, task.id, eval_output.messages)
+        return task, eval_output
+
+    def _on_task_done(task: Task, eval_output: EvalOutput) -> None:
+        result = eval_output.result
+        results.append(result)
+
+        if result.error:
+            status = "[red]FAIL[/red]"
+            score = f"[dim]{result.error[:40]}[/dim]"
+        else:
+            status = "[green]DONE[/green]"
+            score = f"{result.scores.earned}/{result.scores.max_task_points} pts"
+
+        task_id_display = task.id
+        if debug and eval_output.sandbox_path:
+            task_id_display += f"\n[dim]{eval_output.sandbox_path}[/dim]"
+
+        with state_lock:
+            task_states[task.id] = {
+                "task_id": task_id_display,
+                "category": task.ground_truth.category,
+                "repo": _repo_name(task.repository.url),
+                "language": task.repository.language,
+                "status": status,
+                "score": score,
+            }
+        progress.advance(ptask)
+        if live:
+            live.update(_build_display())
+
+    try:
+        with Live(
+            _build_display(), console=console, refresh_per_second=4,
+        ) as live:
+            ptask = progress.add_task("Evaluating", total=len(pending_tasks))
+            live.update(_build_display())
+
+            if config.workers == 1:
+                for task_item in pending_tasks:
+                    task_item, eval_output = _evaluate(task_item)
+                    _on_task_done(task_item, eval_output)
+            else:
+                pool = WorkerPool(num_workers=config.workers)
+
+                def _on_complete(pair):  # noqa: ANN001, ANN202
+                    t, eo = pair
+                    _on_task_done(t, eo)
+
+                pool.run(
+                    items=pending_tasks,
+                    evaluate_fn=_evaluate,
+                    on_complete=_on_complete,
+                )
+
+    except KeyboardInterrupt:
+        interrupted = True
+        console.print()
+        console.print("[bold yellow]Interrupted![/bold yellow]")
+        if sandbox_manager:
+            console.print("[dim]Cleaning up sandboxes...[/dim]")
+            sandbox_manager.cleanup_all()
 
     # Summary
+    _print_run_summary(results, output_path, interrupted)
+
+    # Auto-generate report if evaluation completed successfully
+    if results and not interrupted:
+        _run_report(output_path)
+
+
+# ---------------------------------------------------------------------------
+# Output helpers
+# ---------------------------------------------------------------------------
+
+
+def _print_config(
+    config: RunConfig, output_path: Path, debug_path: Path | None,
+) -> None:
+    """Print run configuration as a compact panel."""
+    info = Table.grid(padding=(0, 2))
+    info.add_column(style="bold")
+    info.add_column()
+    info.add_row("Model", config.model)
+    info.add_row("Dataset", config.dataset)
+    info.add_row("Layer", f"{config.layer} | Mode: {config.mode}")
+    info.add_row("Workers", str(config.workers))
+    info.add_row("Output", str(output_path))
+    if debug_path:
+        info.add_row("Debug", str(debug_path))
+
+    console.print(Panel(
+        info,
+        title="[bold]SecLens Run[/bold]",
+        border_style="blue",
+        expand=False,
+    ))
+
+
+def _print_run_summary(
+    results: list, output_path: Path, interrupted: bool,
+) -> None:
+    """Print compact summary panel after evaluation."""
+    if not results:
+        if interrupted:
+            console.print("  No tasks completed before interruption.")
+        return
+
+    console.print()
+
     errors = sum(1 for r in results if r.error)
     total_cost = sum(r.metrics.cost_usd for r in results)
+    total_earned = sum(r.scores.earned for r in results)
+    total_possible = sum(r.scores.max_task_points for r in results)
+
+    label = "Partial results" if interrupted else "Evaluation complete!"
+    color = "bold yellow" if interrupted else "bold green"
+
+    stats = Table.grid(padding=(0, 2))
+    stats.add_column(style="bold")
+    stats.add_column()
+    stats.add_row("Tasks", f"{len(results)}")
+    stats.add_row("Score", f"{total_earned}/{total_possible}")
+    stats.add_row("Errors", f"{errors}" if errors else "[green]0[/green]")
+    stats.add_row("Cost", f"${total_cost:.4f}")
+    stats.add_row("Output", str(output_path))
+
+    border = "yellow" if interrupted else "green"
+    console.print(Panel(
+        stats,
+        title=f"[{color}]{label}[/{color}]",
+        border_style=border,
+        expand=False,
+    ))
+
+
+def _run_report(output_path: Path) -> None:
+    """Auto-generate and display the aggregate report."""
+    from seclens.cli.report import _print_terminal_report
+    from seclens.scoring.aggregate import compute_aggregate
+
     console.print()
-    console.print("[bold green]Evaluation complete![/bold green]")
-    console.print(f"  Tasks: {len(results)} | Errors: {errors} | Cost: ${total_cost:.4f}")
-    console.print(f"  Results: {output_path}")
+    console.print("[bold]Generating report...[/bold]")
+
+    results = read_results(output_path)
+    if not results:
+        return
+
+    run_metadata = results[0].run_metadata
+    report = compute_aggregate(results, run_metadata)
+    _print_terminal_report(report)
 
 
-def _default_output_path(config: RunConfig) -> Path:
-    """Generate a default output filename from config."""
+# ---------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------
+
+
+def _result_filename(config: RunConfig) -> str:
+    """Generate the result filename from config."""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     model_slug = config.model.replace("/", "_")
-    return Path(f"results_{model_slug}_L{config.layer}_{config.mode}_{timestamp}.jsonl")
+    return f"results_{model_slug}_L{config.layer}_{config.mode}_{timestamp}.jsonl"
 
 
-def _print_task_status(result) -> None:  # noqa: ANN001
-    """Print a single-line status for a completed task."""
-    if result.error:
-        console.print(f"  [red]✗[/red] {result.task_id}: {result.error}")
-    else:
-        earned = result.scores.earned
-        max_pts = result.scores.max_task_points
-        console.print(f"  [green]✓[/green] {result.task_id}: {earned}/{max_pts}")
+def _repo_name(url: str) -> str:
+    """Extract 'owner/repo' from a GitHub URL."""
+    parts = url.rstrip("/").split("/")
+    if len(parts) >= 2:
+        return f"{parts[-2]}/{parts[-1]}"
+    return url
+
+
+_debug_write_lock = threading.Lock()
+
+
+def _write_debug(path: Path, task_id: str, messages: list) -> None:
+    """Append a debug record to the debug JSONL file."""
+    from seclens.schemas.debug import DebugRecord
+
+    record = DebugRecord(task_id=task_id, msg_chain=messages)
+    line = record.model_dump_json()
+
+    with _debug_write_lock:
+        with open(path, "a") as f:
+            f.write(line + "\n")
+            f.flush()

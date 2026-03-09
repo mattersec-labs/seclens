@@ -18,6 +18,9 @@ app = typer.Typer(
 @app.callback()
 def main() -> None:
     """SecLens: Evaluate LLMs on security vulnerability detection."""
+    from dotenv import load_dotenv
+
+    load_dotenv()
 
 
 app.command(name="run")(run_command)

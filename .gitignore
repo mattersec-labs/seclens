@@ -15,3 +15,4 @@ venv/
 htmlcov/
 *.jsonl
 !bootstrap.jsonl
+out/

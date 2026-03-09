@@ -46,8 +46,9 @@ class WorkerPool:
 
         results: list[R] = []
         lock = threading.Lock()
+        executor = ThreadPoolExecutor(max_workers=self.num_workers)
 
-        with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
+        try:
             future_to_item = {
                 executor.submit(evaluate_fn, item): item for item in items
             }
@@ -66,5 +67,10 @@ class WorkerPool:
                         with lock:
                             on_complete(result)
                     results.append(result)
+        except KeyboardInterrupt:
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+        else:
+            executor.shutdown(wait=True)
 
         return results
