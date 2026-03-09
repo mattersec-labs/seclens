@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from engine_harness import (
@@ -9,6 +10,7 @@ from engine_harness import (
     ListDirTool,
     EngineLoopResult,
     EngineLoop,
+    Message,
     ModelAdapter,
     ReadFileTool,
     SearchTool,
@@ -25,17 +27,33 @@ from seclens.schemas.task import Task
 from seclens.scoring.grader import score_task
 
 
+@dataclass
+class EvalOutput:
+    """Wrapper for evaluate_task output — result plus optional debug data."""
+
+    result: TaskResult
+    messages: list[Message] = field(default_factory=list)
+    sandbox_path: str | None = None
+
+
+def _extract_model_id(model_string: str) -> str:
+    """Extract the model ID from a 'provider/model-id' string."""
+    if "/" in model_string:
+        return model_string.split("/", 1)[1]
+    return model_string
+
+
 def evaluate_task(
     task: Task,
     adapter: ModelAdapter,
     config: RunConfig,
     *,
     sandbox_manager: SandboxManager | None = None,
-) -> TaskResult:
+) -> EvalOutput:
     """Evaluate a single task end-to-end.
 
     Orchestrates code fetch / sandbox creation, prompt building, LLM execution,
-    response parsing, and scoring. Returns a complete ``TaskResult``.
+    response parsing, and scoring.
 
     Args:
         task: The task to evaluate.
@@ -45,7 +63,8 @@ def evaluate_task(
             per-call if not provided.
 
     Returns:
-        A ``TaskResult`` with scores, metrics, and any error information.
+        An ``EvalOutput`` containing the ``TaskResult`` and the full message
+        chain from the EngineLoop (for debug output).
     """
     run_metadata = _build_run_metadata(config)
 
@@ -54,7 +73,9 @@ def evaluate_task(
             return _evaluate_layer1(task, adapter, config, run_metadata)
         return _evaluate_layer2(task, adapter, config, run_metadata, sandbox_manager)
     except Exception as exc:  # noqa: BLE001
-        return _error_result(task, run_metadata, f"{type(exc).__name__}: {exc}")
+        return EvalOutput(
+            result=_error_result(task, run_metadata, f"{type(exc).__name__}: {exc}"),
+        )
 
 
 def _evaluate_layer1(
@@ -62,7 +83,7 @@ def _evaluate_layer1(
     adapter: ModelAdapter,
     config: RunConfig,
     run_metadata: RunMetadata,
-) -> TaskResult:
+) -> EvalOutput:
     """Layer 1: code-in-prompt, single turn, no tools."""
     from seclens.prompts.builder import build_prompt
 
@@ -75,23 +96,26 @@ def _evaluate_layer1(
         layer=config.layer, code_block=code_block,
     )
 
-    cost_tracker = CostTracker(model_id=config.model, max_cost=config.max_cost)
+    cost_tracker = CostTracker(model_id=_extract_model_id(config.model), max_cost=config.max_cost)
     runner = EngineLoop(adapter=adapter, middlewares=[cost_tracker], max_turns=1)
-    result = runner.run(messages)
+    loop_result = runner.run(messages)
 
-    parse_result = parse_response(result.final_response.content or "")
+    parse_result = parse_response(loop_result.final_response.content or "")
     scores = score_task(parse_result, task.ground_truth, task.max_task_points)
-    metrics = _build_metrics(result, cost_tracker)
+    metrics = _build_metrics(loop_result, cost_tracker)
 
-    return TaskResult(
-        task_id=task.id,
-        task_type=task.type,
-        task_category=task.ground_truth.category,
-        task_language=task.repository.language,
-        run_metadata=run_metadata,
-        parse_result=parse_result,
-        scores=scores,
-        metrics=metrics,
+    return EvalOutput(
+        result=TaskResult(
+            task_id=task.id,
+            task_type=task.type,
+            task_category=task.ground_truth.category,
+            task_language=task.repository.language,
+            run_metadata=run_metadata,
+            parse_result=parse_result,
+            scores=scores,
+            metrics=metrics,
+        ),
+        messages=loop_result.messages,
     )
 
 
@@ -101,7 +125,7 @@ def _evaluate_layer2(
     config: RunConfig,
     run_metadata: RunMetadata,
     sandbox_manager: SandboxManager | None,
-) -> TaskResult:
+) -> EvalOutput:
     """Layer 2: tool-use with sandboxed repository."""
     from seclens.prompts.builder import build_prompt
 
@@ -116,7 +140,7 @@ def _evaluate_layer2(
         )
 
         tool_logger = ToolLogger()
-        cost_tracker = CostTracker(model_id=config.model, max_cost=config.max_cost)
+        cost_tracker = CostTracker(model_id=_extract_model_id(config.model), max_cost=config.max_cost)
         runner = EngineLoop(
             adapter=adapter,
             tools=[ReadFileTool, SearchTool, ListDirTool],
@@ -124,22 +148,25 @@ def _evaluate_layer2(
             middlewares=[tool_logger, cost_tracker],
             max_turns=config.max_turns,
         )
-        result = runner.run(messages)
+        loop_result = runner.run(messages)
 
-        parse_result = parse_response(result.final_response.content or "")
+        parse_result = parse_response(loop_result.final_response.content or "")
         scores = score_task(parse_result, task.ground_truth, task.max_task_points)
-        metrics = _build_metrics(result, cost_tracker, tool_logger)
+        metrics = _build_metrics(loop_result, cost_tracker, tool_logger)
 
-        return TaskResult(
-            task_id=task.id,
-            task_type=task.type,
-            task_category=task.ground_truth.category,
-            task_language=task.repository.language,
-            run_metadata=run_metadata,
-            parse_result=parse_result,
-            scores=scores,
-            tool_log=tool_logger.log,
-            metrics=metrics,
+        return EvalOutput(
+            result=TaskResult(
+                task_id=task.id,
+                task_type=task.type,
+                task_category=task.ground_truth.category,
+                task_language=task.repository.language,
+                run_metadata=run_metadata,
+                parse_result=parse_result,
+                scores=scores,
+                metrics=metrics,
+            ),
+            messages=loop_result.messages,
+            sandbox_path=str(sandbox_path),
         )
     finally:
         manager.cleanup(task.id)

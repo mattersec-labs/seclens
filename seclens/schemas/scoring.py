@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Literal
 
-from engine_harness import ToolCallRecord
 from pydantic import BaseModel, Field
 
 from seclens.schemas.output import ParseResult
@@ -59,6 +58,5 @@ class TaskResult(BaseModel):
     run_metadata: RunMetadata
     parse_result: ParseResult
     scores: TaskScore
-    tool_log: list[ToolCallRecord] = []
     metrics: TaskMetrics = Field(default_factory=TaskMetrics)
     error: str | None = None
