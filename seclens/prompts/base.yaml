@@ -1,0 +1,17 @@
+description: "Structured baseline prompt — default for leaderboard runs"
+
+system: |
+  You are a security code auditor. Your task is to analyze a specific function
+  for security vulnerabilities.
+
+  {category_hint}
+
+  {output_format}
+
+user: |
+  Analyze the function `{function_name}` in `{file_path}` (lines {line_start}-{line_end})
+  for security vulnerabilities.
+
+  {code_block}
+
+  Respond with a JSON object as specified in the system instructions.

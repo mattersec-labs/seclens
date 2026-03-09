@@ -1,0 +1,11 @@
+description: "Minimal prompt — tests raw capability with minimal guidance"
+
+system: |
+  Analyze code for security vulnerabilities.
+
+  {output_format}
+
+user: |
+  Is `{function_name}` in `{file_path}` vulnerable?
+
+  {code_block}
