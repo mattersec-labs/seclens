@@ -22,7 +22,7 @@ class SandboxManager:
     """
 
     def __init__(self, base_dir: Path | None = None) -> None:
-        self._base_dir = base_dir or Path(tempfile.mkdtemp(prefix="seclens_"))
+        self._base_dir = base_dir or Path(tempfile.mkdtemp(prefix="sandboxed_"))
 
     @property
     def base_dir(self) -> Path:
@@ -44,7 +44,7 @@ class SandboxManager:
         task_dir.mkdir(parents=True, exist_ok=True)
 
         self._git_clone(repo_url, commit, task_dir)
-        self._remove_git_dir(task_dir)
+        self._sanitize_repo(task_dir)
 
         return task_dir
 
@@ -53,6 +53,11 @@ class SandboxManager:
         task_dir = self._base_dir / task_id
         if task_dir.exists():
             shutil.rmtree(task_dir)
+
+    def cleanup_all(self) -> None:
+        """Remove the entire sandbox base directory and all task sandboxes."""
+        if self._base_dir.exists():
+            shutil.rmtree(self._base_dir, ignore_errors=True)
 
     def _git_clone(self, repo_url: str, commit: str, dest: Path) -> None:
         """Clone repo and checkout specific commit."""
@@ -81,11 +86,46 @@ class SandboxManager:
         )
 
     @staticmethod
-    def _remove_git_dir(repo_dir: Path) -> None:
-        """Remove .git directory to prevent LLM from using git commands."""
-        git_dir = repo_dir / ".git"
-        if git_dir.exists():
-            shutil.rmtree(git_dir)
+    def _sanitize_repo(repo_dir: Path) -> None:
+        """Remove files that could leak answers or add noise.
+
+        Tier 1: Git internals and CI/build noise — no value for security analysis.
+        Tier 2: Tests and docs — could contain CVE regression tests or
+                 changelog entries that directly reveal the vulnerability.
+        """
+        # Directories to remove
+        remove_dirs = [
+            # Tier 1 — git & CI noise
+            ".git", ".github", ".gitlab", ".circleci",
+            ".tx", "js_tests", "scripts", "extras",
+            # Tier 2 — answer leakage
+            "tests", "test", "docs", "doc",
+        ]
+        # Files to remove (glob patterns matched against name only)
+        remove_files = [
+            # Git-specific (useless without .git)
+            ".gitattributes", ".git-blame-ignore-revs", ".gitignore", ".gitmodules",
+            # CI / build / editor noise
+            ".editorconfig", ".flake8", ".pre-commit-config.yaml",
+            ".readthedocs.yml", ".readthedocs.yaml",
+            "tox.ini", "MANIFEST.in", "Gruntfile.js",
+            "eslint.config.mjs", "package.json", "package-lock.json",
+            "yarn.lock", ".eslintrc.js", ".eslintrc.json",
+            # Docs / meta
+            "CONTRIBUTING.rst", "CONTRIBUTING.md",
+            "AUTHORS", "CHANGELOG.md", "CHANGELOG.rst",
+            "CHANGES.md", "CHANGES.rst", "HISTORY.md", "HISTORY.rst",
+        ]
+
+        for name in remove_dirs:
+            path = repo_dir / name
+            if path.is_dir():
+                shutil.rmtree(path, ignore_errors=True)
+
+        for name in remove_files:
+            path = repo_dir / name
+            if path.is_file():
+                path.unlink(missing_ok=True)
 
 
 def fetch_target_code(repo_url: str, commit: str, target: Target) -> str:
@@ -106,7 +146,7 @@ def fetch_target_code(repo_url: str, commit: str, target: Target) -> str:
     owner, repo = _parse_github_url(repo_url)
     content = _fetch_file_raw(owner, repo, commit, target.file)
 
-    with tempfile.TemporaryDirectory(prefix="seclens_l1_") as tmp_dir:
+    with tempfile.TemporaryDirectory(prefix="sandboxed_") as tmp_dir:
         tmp_path = Path(tmp_dir)
         file_dest = tmp_path / target.file
         file_dest.parent.mkdir(parents=True, exist_ok=True)
