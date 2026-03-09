@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner
 
 from seclens.cli.main import app
@@ -105,26 +106,33 @@ class TestRunCommand:
     @patch("seclens.cli.run.load_dataset")
     @patch("seclens.cli.run.evaluate_task")
     @patch("seclens.cli.run.write_result")
+    @patch("seclens.cli.run._run_report")
     def test_single_worker_run(
         self,
+        mock_report: MagicMock,
         mock_write: MagicMock,
         mock_eval: MagicMock,
         mock_load: MagicMock,
         mock_adapter: MagicMock,
         tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        from seclens.evaluation.runner import EvalOutput
+
         mock_task = MagicMock()
         mock_task.id = "t1"
+        mock_task.repository.url = "https://github.com/test/repo"
+        mock_task.repository.language = "python"
+        mock_task.ground_truth.category = "sql_injection"
         mock_load.return_value = [mock_task]
-        mock_eval.return_value = _make_result("t1")
+        mock_eval.return_value = EvalOutput(result=_make_result("t1"))
 
-        out_path = tmp_path / "results.jsonl"
+        monkeypatch.chdir(tmp_path)
         result = runner.invoke(app, [
             "run",
             "--model", "test/model",
             "--dataset", "test.jsonl",
             "--workers", "1",
-            "--out", str(out_path),
         ])
         assert result.exit_code == 0
         assert "Evaluation complete" in result.output
@@ -139,22 +147,26 @@ class TestRunCommand:
         mock_load: MagicMock,
         mock_adapter: MagicMock,
         tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         mock_task = MagicMock()
         mock_task.id = "t1"
         mock_load.return_value = [mock_task]
         mock_completed.return_value = {"t1"}
 
-        out_path = tmp_path / "results.jsonl"
-        out_path.touch()
-
-        result = runner.invoke(app, [
-            "run",
-            "--model", "test/model",
-            "--dataset", "test.jsonl",
-            "--resume",
-            "--out", str(out_path),
-        ])
+        monkeypatch.chdir(tmp_path)
+        out_dir = tmp_path / "out"
+        out_dir.mkdir()
+        # Create a file matching the output pattern so resume finds it
+        # We need to patch _result_filename to return a known name
+        with patch("seclens.cli.run._result_filename", return_value="results.jsonl"):
+            (out_dir / "results.jsonl").touch()
+            result = runner.invoke(app, [
+                "run",
+                "--model", "test/model",
+                "--dataset", "test.jsonl",
+                "--resume",
+            ])
         assert result.exit_code == 0
         assert "All tasks already completed" in result.output
 

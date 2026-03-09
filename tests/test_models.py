@@ -267,7 +267,6 @@ class TestTaskResult:
         )
         assert result.task_id == "test-001"
         assert result.error is None
-        assert result.tool_log == []
 
     def test_error_result(self) -> None:
         result = TaskResult(

@@ -115,7 +115,7 @@ class TestRunConfig:
         assert cfg.prompt == "base"
         assert cfg.layer == 2
         assert cfg.mode == "guided"
-        assert cfg.max_turns == 20
+        assert cfg.max_turns == 200
         assert cfg.workers == 5
         assert cfg.seed == 42
 
@@ -129,11 +129,10 @@ class TestRunConfig:
             max_cost=1.0,
             workers=10,
             seed=123,
-            output=Path("/tmp/results.jsonl"),
         )
         assert cfg.model == "openai/gpt-4"
         assert cfg.layer == 1
-        assert cfg.output == Path("/tmp/results.jsonl")
+        assert cfg.seed == 123
 
     def test_invalid_layer(self) -> None:
         with pytest.raises(Exception):
@@ -211,7 +210,8 @@ class TestEvaluateTaskLayer1:
         mock_cost_cls.return_value = mock_cost
 
         adapter = MagicMock()
-        result = evaluate_task(positive_task, adapter, config)
+        eval_output = evaluate_task(positive_task, adapter, config)
+        result = eval_output.result
 
         assert result.task_id == "test-pos-001"
         assert result.scores.verdict == 1
@@ -245,7 +245,8 @@ class TestEvaluateTaskLayer1:
         mock_cost_cls.return_value = mock_cost
 
         adapter = MagicMock()
-        result = evaluate_task(negative_task, adapter, config)
+        eval_output = evaluate_task(negative_task, adapter, config)
+        result = eval_output.result
 
         assert result.scores.verdict == 1
         assert result.scores.earned == 1
@@ -261,7 +262,8 @@ class TestEvaluateTaskLayer1:
         mock_fetch.side_effect = ConnectionError("network error")
 
         adapter = MagicMock()
-        result = evaluate_task(positive_task, adapter, config)
+        eval_output = evaluate_task(positive_task, adapter, config)
+        result = eval_output.result
 
         assert result.error == "ConnectionError: network error"
         assert result.scores.verdict == 0
@@ -290,7 +292,8 @@ class TestEvaluateTaskLayer1:
         mock_cost_cls.return_value = mock_cost
 
         adapter = MagicMock()
-        result = evaluate_task(positive_task, adapter, config)
+        eval_output = evaluate_task(positive_task, adapter, config)
+        result = eval_output.result
 
         assert result.parse_result.status == ParseStatus.FAILED
         assert result.scores.verdict == 0
@@ -318,7 +321,8 @@ class TestEvaluateTaskLayer1:
         mock_cost_cls.return_value = mock_cost
 
         adapter = MagicMock()
-        result = evaluate_task(positive_task, adapter, config)
+        eval_output = evaluate_task(positive_task, adapter, config)
+        result = eval_output.result
 
         assert result.metrics.input_tokens == 100
         assert result.metrics.output_tokens == 50
@@ -361,7 +365,8 @@ class TestEvaluateTaskLayer2:
         mock_tl_cls.return_value = mock_tl
 
         adapter = MagicMock()
-        result = evaluate_task(positive_task, adapter, config_layer2)
+        eval_output = evaluate_task(positive_task, adapter, config_layer2)
+        result = eval_output.result
 
         assert result.scores.verdict == 1
         mock_sandbox.create.assert_called_once_with(
@@ -396,7 +401,8 @@ class TestEvaluateTaskLayer2:
         mock_tl_cls.return_value = MagicMock()
 
         adapter = MagicMock()
-        result = evaluate_task(positive_task, adapter, config_layer2)
+        eval_output = evaluate_task(positive_task, adapter, config_layer2)
+        result = eval_output.result
 
         assert result.error == "RuntimeError: LLM error"
         mock_sandbox.cleanup.assert_called_once_with("test-pos-001")
@@ -429,12 +435,12 @@ class TestEvaluateTaskLayer2:
         mock_tl_cls.return_value = mock_tl
 
         adapter = MagicMock()
-        result = evaluate_task(
+        eval_output = evaluate_task(
             positive_task, adapter, config_layer2,
             sandbox_manager=shared_manager,
         )
 
-        assert result.error is None
+        assert eval_output.result.error is None
         shared_manager.create.assert_called_once()
         shared_manager.cleanup.assert_called_once()
 
@@ -442,7 +448,7 @@ class TestEvaluateTaskLayer2:
     @patch("seclens.evaluation.runner.EngineLoop")
     @patch("seclens.evaluation.runner.CostTracker")
     @patch("seclens.evaluation.runner.ToolLogger")
-    def test_tool_log_captured(
+    def test_tool_calls_counted(
         self,
         mock_tl_cls: MagicMock,
         mock_cost_cls: MagicMock,
@@ -481,8 +487,8 @@ class TestEvaluateTaskLayer2:
         mock_tl_cls.return_value = mock_tl
 
         adapter = MagicMock()
-        result = evaluate_task(positive_task, adapter, config_layer2)
+        eval_output = evaluate_task(positive_task, adapter, config_layer2)
+        result = eval_output.result
 
-        assert len(result.tool_log) == 2
         assert result.metrics.tool_calls == 2
         assert result.metrics.turns == 3

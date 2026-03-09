@@ -44,7 +44,7 @@ class TestSandboxManager:
     def test_default_base_dir(self) -> None:
         manager = SandboxManager()
         assert manager.base_dir.exists()
-        assert "seclens_" in manager.base_dir.name
+        assert "sandboxed_" in manager.base_dir.name
 
     def test_custom_base_dir(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
