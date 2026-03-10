@@ -19,7 +19,9 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
+from rich.spinner import Spinner
 from rich.table import Table
+from rich.text import Text
 
 from seclens.dataset.loader import load_dataset
 from seclens.evaluation.config import RunConfig
@@ -269,7 +271,7 @@ def run_command(
                 "category": task.ground_truth.category,
                 "repo": _repo_name(task.repository.url),
                 "language": task.repository.language,
-                "status": "[cyan]RUNNING[/cyan]",
+                "status": Spinner("dots", style="cyan"),
                 "score": "—",
                 "running": True,
             }
@@ -292,10 +294,10 @@ def run_command(
         results.append(result)
 
         if result.error:
-            status = "[red]FAIL[/red]"
+            status = Text("✘ FAIL", style="bold red")
             score = f"[dim]{result.error[:40]}[/dim]"
         else:
-            status = "[green]DONE[/green]"
+            status = Text("✔ DONE", style="bold green")
             score = f"{result.scores.earned}/{result.scores.max_task_points} pts"
 
         with state_lock:
