@@ -12,7 +12,13 @@ from engine_harness import create_adapter
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, TimeElapsedColumn
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    TextColumn,
+    TimeElapsedColumn,
+)
 from rich.table import Table
 
 from seclens.dataset.loader import load_dataset
@@ -29,46 +35,95 @@ OUT_DIR = Path("out")
 
 
 def run_command(
-    model: Annotated[str, typer.Option(
-        "--model", "-m",
-        help="Model identifier (e.g. anthropic/claude-sonnet-4-20250514)",
-    )],
-    dataset: Annotated[str, typer.Option(
-        "--dataset", "-d",
-        help="Dataset string (HF repo:split) or local JSONL path",
-    )],
-    prompt: Annotated[str, typer.Option(
-        "--prompt", "-p", help="Prompt preset name or custom YAML path",
-    )] = "base",
-    layer: Annotated[int, typer.Option(
-        "--layer", "-l",
-        help="Evaluation layer (1=code-in-prompt, 2=tool-use)",
-    )] = 2,
-    mode: Annotated[str, typer.Option(
-        "--mode", help="Evaluation mode (guided or open)",
-    )] = "guided",
-    workers: Annotated[int, typer.Option(
-        "--workers", "-w", help="Number of parallel workers",
-    )] = 5,
-    max_cost: Annotated[Optional[float], typer.Option(
-        "--max-cost", help="Maximum budget in USD",
-    )] = None,
-    max_turns: Annotated[int, typer.Option(
-        "--max-turns", help="Maximum LLM turns per task",
-    )] = 200,
-    resume: Annotated[bool, typer.Option(
-        "--resume", help="Resume from existing output file",
-    )] = False,
-    seed: Annotated[int, typer.Option(
-        "--seed", help="Random seed for reproducibility",
-    )] = 42,
-    dry_run: Annotated[bool, typer.Option(
-        "--dry-run",
-        help="Validate config and show task count without running",
-    )] = False,
-    debug: Annotated[bool, typer.Option(
-        "--debug", help="Save full message chains to a debug JSONL file",
-    )] = False,
+    model: Annotated[
+        str,
+        typer.Option(
+            "--model",
+            "-m",
+            help="Model identifier (e.g. anthropic/claude-sonnet-4-20250514)",
+        ),
+    ],
+    dataset: Annotated[
+        str,
+        typer.Option(
+            "--dataset",
+            "-d",
+            help="Dataset string (HF repo:split) or local JSONL path",
+        ),
+    ],
+    prompt: Annotated[
+        str,
+        typer.Option(
+            "--prompt",
+            "-p",
+            help="Prompt preset name or custom YAML path",
+        ),
+    ] = "base",
+    layer: Annotated[
+        int,
+        typer.Option(
+            "--layer",
+            "-l",
+            help="Evaluation layer (1=code-in-prompt, 2=tool-use)",
+        ),
+    ] = 2,
+    mode: Annotated[
+        str,
+        typer.Option(
+            "--mode",
+            help="Evaluation mode (guided or open)",
+        ),
+    ] = "guided",
+    workers: Annotated[
+        int,
+        typer.Option(
+            "--workers",
+            "-w",
+            help="Number of parallel workers",
+        ),
+    ] = 5,
+    max_cost: Annotated[
+        Optional[float],
+        typer.Option(
+            "--max-cost",
+            help="Maximum budget in USD",
+        ),
+    ] = None,
+    max_turns: Annotated[
+        int,
+        typer.Option(
+            "--max-turns",
+            help="Maximum LLM turns per task",
+        ),
+    ] = 200,
+    resume: Annotated[
+        bool,
+        typer.Option(
+            "--resume",
+            help="Resume from existing output file",
+        ),
+    ] = False,
+    seed: Annotated[
+        int,
+        typer.Option(
+            "--seed",
+            help="Random seed for reproducibility",
+        ),
+    ] = 42,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Validate config and show task count without running",
+        ),
+    ] = False,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Save full message chains to a debug JSONL file",
+        ),
+    ] = False,
 ) -> None:
     """Run an evaluation benchmark against a model."""
     if layer not in (1, 2):
@@ -152,26 +207,35 @@ def run_command(
         TimeElapsedColumn(),
     )
 
+    _HEADER = "bold magenta"
+    _TEXT = "grey74"
+
     def _build_task_table() -> Table:
         """Build the task status table from current state."""
         table = Table(
             expand=True,
             show_header=True,
-            header_style="bold",
-            border_style="dim",
+            header_style=_HEADER,
+            border_style="grey35",
         )
         table.add_column("Status", width=10, no_wrap=True)
-        table.add_column("Task ID", ratio=4)
-        table.add_column("Category", ratio=1)
-        table.add_column("Repository", ratio=1)
-        table.add_column("Language", width=10)
-        table.add_column("Score", width=15, justify="right")
+        table.add_column("Task ID", ratio=4, style=_TEXT)
+        table.add_column("Category", ratio=1, style=_TEXT)
+        table.add_column("Repository", ratio=1, style=_TEXT)
+        table.add_column("Language", width=10, style=_TEXT)
+        table.add_column("Score", width=15, justify="right", style=_TEXT)
 
         with state_lock:
-            for state in task_states.values():
+            for tid, state in task_states.items():
+                task_id_display = state["task_id"]
+                # For RUNNING tasks in debug mode, dynamically resolve sandbox path
+                if debug and state.get("running") and sandbox_manager:
+                    sandbox_dir = sandbox_manager.get_task_dir(tid)
+                    if sandbox_dir:
+                        task_id_display += f"\n[dim]Sandbox: {sandbox_dir}[/dim]"
                 table.add_row(
                     state["status"],
-                    state["task_id"],
+                    task_id_display,
                     state["category"],
                     state["repo"],
                     state["language"],
@@ -188,32 +252,35 @@ def run_command(
             layout.add_row(task_table)
         return layout
 
+    class _DynamicDisplay:
+        """Renderable that rebuilds the layout on each Live refresh."""
+
+        def __rich__(self) -> Table:
+            return _build_display()
+
+    display = _DynamicDisplay()
     live: Live | None = None
     ptask = None
 
     def _mark_running(task: Task) -> None:
-        task_id_display = task.id
-        if debug and sandbox_manager:
-            task_id_display += (
-                f"\n[dim]{sandbox_manager.base_dir / task.id}[/dim]"
-            )
-
         with state_lock:
             task_states[task.id] = {
-                "task_id": task_id_display,
+                "task_id": task.id,
                 "category": task.ground_truth.category,
                 "repo": _repo_name(task.repository.url),
                 "language": task.repository.language,
                 "status": "[cyan]RUNNING[/cyan]",
                 "score": "—",
+                "running": True,
             }
-        if live:
-            live.update(_build_display())
 
     def _evaluate(task: Task):  # noqa: ANN202
         _mark_running(task)
         eval_output = evaluate_task(
-            task, adapter, config, sandbox_manager=sandbox_manager,
+            task,
+            adapter,
+            config,
+            sandbox_manager=sandbox_manager,
         )
         write_result(output_path, eval_output.result)
         if debug_path:
@@ -231,29 +298,25 @@ def run_command(
             status = "[green]DONE[/green]"
             score = f"{result.scores.earned}/{result.scores.max_task_points} pts"
 
-        task_id_display = task.id
-        if debug and eval_output.sandbox_path:
-            task_id_display += f"\n[dim]{eval_output.sandbox_path}[/dim]"
-
         with state_lock:
             task_states[task.id] = {
-                "task_id": task_id_display,
+                "task_id": task.id,
                 "category": task.ground_truth.category,
                 "repo": _repo_name(task.repository.url),
                 "language": task.repository.language,
                 "status": status,
                 "score": score,
+                "running": False,
             }
         progress.advance(ptask)
-        if live:
-            live.update(_build_display())
 
     try:
         with Live(
-            _build_display(), console=console, refresh_per_second=4,
+            display,
+            console=console,
+            refresh_per_second=4,
         ) as live:
             ptask = progress.add_task("Evaluating", total=len(pending_tasks))
-            live.update(_build_display())
 
             if config.workers == 1:
                 for task_item in pending_tasks:
@@ -294,30 +357,38 @@ def run_command(
 
 
 def _print_config(
-    config: RunConfig, output_path: Path, debug_path: Path | None,
+    config: RunConfig,
+    output_path: Path,
+    debug_path: Path | None,
 ) -> None:
     """Print run configuration as a compact panel."""
     info = Table.grid(padding=(0, 2))
-    info.add_column(style="bold")
+    info.add_column(style="bold magenta")
     info.add_column()
     info.add_row("Model", config.model)
     info.add_row("Dataset", config.dataset)
-    info.add_row("Layer", f"{config.layer} | Mode: {config.mode}")
+    info.add_row("Layer", f"{config.layer}")
+    info.add_row("Mode", f"{config.mode}")
+    info.add_row("Prompt", f"{config.prompt}")
     info.add_row("Workers", str(config.workers))
     info.add_row("Output", str(output_path))
     if debug_path:
         info.add_row("Debug", str(debug_path))
 
-    console.print(Panel(
-        info,
-        title="[bold]SecLens Run[/bold]",
-        border_style="blue",
-        expand=False,
-    ))
+    console.print(
+        Panel(
+            info,
+            title="[bold]SecLens Run[/bold]",
+            border_style="blue",
+            expand=False,
+        )
+    )
 
 
 def _print_run_summary(
-    results: list, output_path: Path, interrupted: bool,
+    results: list,
+    output_path: Path,
+    interrupted: bool,
 ) -> None:
     """Print compact summary panel after evaluation."""
     if not results:
@@ -336,21 +407,22 @@ def _print_run_summary(
     color = "bold yellow" if interrupted else "bold green"
 
     stats = Table.grid(padding=(0, 2))
-    stats.add_column(style="bold")
+    stats.add_column(style="bold magenta")
     stats.add_column()
     stats.add_row("Tasks", f"{len(results)}")
     stats.add_row("Score", f"{total_earned}/{total_possible}")
     stats.add_row("Errors", f"{errors}" if errors else "[green]0[/green]")
     stats.add_row("Cost", f"${total_cost:.4f}")
-    stats.add_row("Output", str(output_path))
 
     border = "yellow" if interrupted else "green"
-    console.print(Panel(
-        stats,
-        title=f"[{color}]{label}[/{color}]",
-        border_style=border,
-        expand=False,
-    ))
+    console.print(
+        Panel(
+            stats,
+            title=f"[{color}]{label}[/{color}]",
+            border_style=border,
+            expand=False,
+        )
+    )
 
 
 def _run_report(output_path: Path) -> None:

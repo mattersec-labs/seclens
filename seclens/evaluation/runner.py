@@ -195,6 +195,9 @@ def _build_metrics(
     return TaskMetrics(
         input_tokens=usage.input_tokens if usage else 0,
         output_tokens=usage.output_tokens if usage else 0,
+        thinking_tokens=usage.thinking_tokens if usage else 0,
+        cache_read_tokens=usage.cache_read_tokens if usage else 0,
+        cache_write_tokens=usage.cache_write_tokens if usage else 0,
         total_tokens=(usage.input_tokens + usage.output_tokens) if usage else 0,
         cost_usd=cost_tracker.current_cost,
         tool_calls=len(tool_logger.log) if tool_logger else 0,
