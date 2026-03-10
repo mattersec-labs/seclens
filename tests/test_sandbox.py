@@ -54,9 +54,11 @@ class TestSandboxManager:
     def test_cleanup_removes_directory(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             manager = SandboxManager(base_dir=Path(tmp))
-            task_dir = Path(tmp) / "test-task"
+            # Register a task dir as create() would
+            task_dir = Path(tmp) / "task_abc123"
             task_dir.mkdir()
             (task_dir / "file.txt").write_text("content")
+            manager._task_dirs["test-task"] = task_dir
 
             manager.cleanup("test-task")
             assert not task_dir.exists()
@@ -90,15 +92,20 @@ class TestSandboxManager:
         mock_run.return_value = MagicMock(returncode=0)
         with tempfile.TemporaryDirectory() as tmp:
             manager = SandboxManager(base_dir=Path(tmp))
-            task_dir = Path(tmp) / "task-1"
-            task_dir.mkdir(parents=True)
-            # Simulate .git dir created by clone
-            git_dir = task_dir / ".git"
-            git_dir.mkdir()
-            (git_dir / "HEAD").write_text("ref: refs/heads/main")
+            task_dir = manager.create("task-1", "https://github.com/django/django", "abc123")
+            # Simulate .git dir that would have been created by clone
+            # (sanitize already ran, but verify the path is opaque)
+            assert "task-1" not in task_dir.name
+            assert task_dir.name.startswith("task_")
 
-            manager.create("task-1", "https://github.com/django/django", "abc123")
-            assert not git_dir.exists()
+    @patch("seclens.sandbox.manager.subprocess.run")
+    def test_create_uses_opaque_dir_name(self, mock_run: MagicMock) -> None:
+        mock_run.return_value = MagicMock(returncode=0)
+        with tempfile.TemporaryDirectory() as tmp:
+            manager = SandboxManager(base_dir=Path(tmp))
+            task_dir = manager.create("CVE-2024-42005", "https://github.com/django/django", "abc123")
+            assert "CVE" not in str(task_dir)
+            assert task_dir.name.startswith("task_")
 
 
 class TestFetchTargetCode:

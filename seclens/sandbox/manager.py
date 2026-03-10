@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 import shutil
 import subprocess
 import tempfile
@@ -23,6 +24,7 @@ class SandboxManager:
 
     def __init__(self, base_dir: Path | None = None) -> None:
         self._base_dir = base_dir or Path(tempfile.mkdtemp(prefix="sandboxed_"))
+        self._task_dirs: dict[str, Path] = {}
 
     @property
     def base_dir(self) -> Path:
@@ -35,23 +37,29 @@ class SandboxManager:
             1. ``git clone --depth=1`` the repo
             2. ``git fetch --depth=1 origin <commit>``
             3. ``git checkout <commit>``
-            4. Remove ``.git/`` directory (anti-gaming)
+            4. Sanitize repository (anti-gaming)
 
         Returns:
             Path to the cloned repository root.
         """
-        task_dir = self._base_dir / task_id
+        opaque_name = f"task_{secrets.token_hex(8)}"
+        task_dir = self._base_dir / opaque_name
         task_dir.mkdir(parents=True, exist_ok=True)
+        self._task_dirs[task_id] = task_dir
 
         self._git_clone(repo_url, commit, task_dir)
         self._sanitize_repo(task_dir)
 
         return task_dir
 
+    def get_task_dir(self, task_id: str) -> Path | None:
+        """Look up the sandbox directory for a task, or None if not yet created."""
+        return self._task_dirs.get(task_id)
+
     def cleanup(self, task_id: str) -> None:
         """Remove a task's sandbox directory."""
-        task_dir = self._base_dir / task_id
-        if task_dir.exists():
+        task_dir = self._task_dirs.pop(task_id, None)
+        if task_dir and task_dir.exists():
             shutil.rmtree(task_dir)
 
     def cleanup_all(self) -> None:
@@ -96,25 +104,52 @@ class SandboxManager:
         # Directories to remove
         remove_dirs = [
             # Tier 1 — git & CI noise
-            ".git", ".github", ".gitlab", ".circleci",
-            ".tx", "js_tests", "scripts", "extras",
+            ".git",
+            ".github",
+            ".gitlab",
+            ".circleci",
+            ".tx",
+            "js_tests",
+            "scripts",
+            "extras",
             # Tier 2 — answer leakage
-            "tests", "test", "docs", "doc",
+            "tests",
+            "test",
+            "docs",
+            "doc",
         ]
         # Files to remove (glob patterns matched against name only)
         remove_files = [
             # Git-specific (useless without .git)
-            ".gitattributes", ".git-blame-ignore-revs", ".gitignore", ".gitmodules",
+            ".gitattributes",
+            ".git-blame-ignore-revs",
+            ".gitignore",
+            ".gitmodules",
             # CI / build / editor noise
-            ".editorconfig", ".flake8", ".pre-commit-config.yaml",
-            ".readthedocs.yml", ".readthedocs.yaml",
-            "tox.ini", "MANIFEST.in", "Gruntfile.js",
-            "eslint.config.mjs", "package.json", "package-lock.json",
-            "yarn.lock", ".eslintrc.js", ".eslintrc.json",
+            ".editorconfig",
+            ".flake8",
+            ".pre-commit-config.yaml",
+            ".readthedocs.yml",
+            ".readthedocs.yaml",
+            "tox.ini",
+            "MANIFEST.in",
+            "Gruntfile.js",
+            "eslint.config.mjs",
+            "package.json",
+            "package-lock.json",
+            "yarn.lock",
+            ".eslintrc.js",
+            ".eslintrc.json",
             # Docs / meta
-            "CONTRIBUTING.rst", "CONTRIBUTING.md",
-            "AUTHORS", "CHANGELOG.md", "CHANGELOG.rst",
-            "CHANGES.md", "CHANGES.rst", "HISTORY.md", "HISTORY.rst",
+            "CONTRIBUTING.rst",
+            "CONTRIBUTING.md",
+            "AUTHORS",
+            "CHANGELOG.md",
+            "CHANGELOG.rst",
+            "CHANGES.md",
+            "CHANGES.rst",
+            "HISTORY.md",
+            "HISTORY.rst",
         ]
 
         for name in remove_dirs:
