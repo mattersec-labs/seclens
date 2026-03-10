@@ -45,16 +45,16 @@ def _print_terminal_report(report) -> None:  # noqa: ANN001
     ls = report.leaderboard_score
     console.print()
     console.print("[bold]Leaderboard Score[/bold]")
-    console.print(f"  Score: {ls.mean:.4f} (95% CI: [{ls.ci_lower:.4f}, {ls.ci_upper:.4f}])")
+    console.print(f"  Score: {ls.mean * 100:.2f}% (95% CI: [{ls.ci_lower * 100:.2f}%, {ls.ci_upper * 100:.2f}%])")
 
     # Core metrics
     core = report.core
     console.print()
     console.print("[bold]Core Metrics[/bold]")
-    table = Table(show_header=True, header_style="bold")
-    table.add_column("Metric")
-    table.add_column("Mean", justify="right")
-    table.add_column("95% CI", justify="right")
+    table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Mean", justify="right", style="grey74")
+    table.add_column("95% CI", justify="right", style="grey74")
     table.add_row("Tasks", str(core.task_count), "")
     table.add_row(
         "Verdict MCC",
@@ -77,9 +77,9 @@ def _print_terminal_report(report) -> None:  # noqa: ANN001
     cost = report.cost
     console.print()
     console.print("[bold]Cost Metrics[/bold]")
-    cost_table = Table(show_header=True, header_style="bold")
-    cost_table.add_column("Metric")
-    cost_table.add_column("Value", justify="right")
+    cost_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
+    cost_table.add_column("Metric", style="cyan")
+    cost_table.add_column("Value", justify="right", style="grey74")
     cost_table.add_row("Total Cost", f"${cost.total_cost_usd:.4f}")
     cost_table.add_row("Avg Cost/Task", f"${cost.avg_cost_per_task:.4f}")
     if cost.mcc_per_dollar is not None:

@@ -151,7 +151,18 @@ def _load_preset(preset_name: str) -> dict[str, str]:
         content = path.read_text(encoding="utf-8")
         return _parse_preset_yaml(content, preset_name)
 
-    raise FileNotFoundError(f"Prompt preset not found: {preset_name!r}")
+    # List available built-in presets for the error message
+    available = []
+    try:
+        files = importlib.resources.files("seclens.prompts")
+        for item in files.iterdir():
+            name = item.name
+            if name.endswith(".yaml"):
+                available.append(name.removesuffix(".yaml"))
+    except Exception:  # noqa: BLE001
+        pass
+    hint = f" Available presets: {', '.join(sorted(available))}" if available else ""
+    raise FileNotFoundError(f"Prompt preset not found: {preset_name!r}.{hint}")
 
 
 def _parse_preset_yaml(content: str, name: str) -> dict[str, str]:

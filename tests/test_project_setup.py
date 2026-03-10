@@ -30,7 +30,6 @@ def test_subpackages_importable() -> None:
         "seclens.scoring",
         "seclens.dataset",
         "seclens.results",
-        "seclens.reporting",
         "seclens.prompts",
     ]
     for pkg in subpackages:
