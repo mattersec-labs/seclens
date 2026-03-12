@@ -93,7 +93,7 @@ def config_layer2() -> RunConfig:
     return RunConfig(model="test/model", dataset="test.jsonl", layer=2, mode="guided", max_turns=5)
 
 
-def _make_loop_result(content: str, turns: int = 1) -> EngineLoopResult:
+def _make_engineloop_result(content: str, turns: int = 1) -> EngineLoopResult:
     """Create a mock EngineLoopResult with the given response content."""
     return EngineLoopResult(
         final_response=ModelResponse(
@@ -199,7 +199,7 @@ class TestEvaluateTaskLayer1:
             '{"vulnerable": true, "cwe": "CWE-89", '
             '"location": {"file": "app.py", "line_start": 10, "line_end": 20}}'
         )
-        loop_result = _make_loop_result(json_response)
+        loop_result = _make_engineloop_result(json_response)
 
         mock_runner = MagicMock()
         mock_runner.run.return_value = loop_result
@@ -235,7 +235,7 @@ class TestEvaluateTaskLayer1:
     ) -> None:
         mock_fetch.return_value = "def execute_query(q):\n    cursor.execute(q)\n"
 
-        loop_result = _make_loop_result('{"vulnerable": false}')
+        loop_result = _make_engineloop_result('{"vulnerable": false}')
         mock_runner = MagicMock()
         mock_runner.run.return_value = loop_result
         mock_runner_cls.return_value = mock_runner
@@ -282,7 +282,7 @@ class TestEvaluateTaskLayer1:
     ) -> None:
         mock_fetch.return_value = "code"
 
-        loop_result = _make_loop_result("I cannot determine the vulnerability.")
+        loop_result = _make_engineloop_result("I cannot determine the vulnerability.")
         mock_runner = MagicMock()
         mock_runner.run.return_value = loop_result
         mock_runner_cls.return_value = mock_runner
@@ -311,7 +311,7 @@ class TestEvaluateTaskLayer1:
     ) -> None:
         mock_fetch.return_value = "code"
 
-        loop_result = _make_loop_result('{"vulnerable": true}')
+        loop_result = _make_engineloop_result('{"vulnerable": true}')
         mock_runner = MagicMock()
         mock_runner.run.return_value = loop_result
         mock_runner_cls.return_value = mock_runner
@@ -351,7 +351,7 @@ class TestEvaluateTaskLayer2:
         mock_sandbox.create.return_value = Path("/tmp/sandbox/test-pos-001")
         mock_sandbox_cls.return_value = mock_sandbox
 
-        loop_result = _make_loop_result('{"vulnerable": true, "cwe": "CWE-89"}')
+        loop_result = _make_engineloop_result('{"vulnerable": true, "cwe": "CWE-89"}')
         mock_runner = MagicMock()
         mock_runner.run.return_value = loop_result
         mock_runner_cls.return_value = mock_runner
@@ -421,7 +421,7 @@ class TestEvaluateTaskLayer2:
         shared_manager = MagicMock()
         shared_manager.create.return_value = Path("/tmp/sandbox/test-pos-001")
 
-        loop_result = _make_loop_result('{"vulnerable": true}')
+        loop_result = _make_engineloop_result('{"vulnerable": true}')
         mock_runner = MagicMock()
         mock_runner.run.return_value = loop_result
         mock_runner_cls.return_value = mock_runner
@@ -463,7 +463,7 @@ class TestEvaluateTaskLayer2:
         mock_sandbox.create.return_value = Path("/tmp/sandbox/test-pos-001")
         mock_sandbox_cls.return_value = mock_sandbox
 
-        loop_result = _make_loop_result('{"vulnerable": true}', turns=3)
+        loop_result = _make_engineloop_result('{"vulnerable": true}', turns=3)
         mock_runner = MagicMock()
         mock_runner.run.return_value = loop_result
         mock_runner_cls.return_value = mock_runner

@@ -7,9 +7,9 @@ from datetime import datetime, timezone
 
 from engine_harness import (
     CostTracker,
-    ListDirTool,
-    EngineLoopResult,
     EngineLoop,
+    EngineLoopResult,
+    ListDirTool,
     Message,
     ModelAdapter,
     ReadFileTool,
@@ -41,6 +41,25 @@ def _extract_model_id(model_string: str) -> str:
     if "/" in model_string:
         return model_string.split("/", 1)[1]
     return model_string
+
+
+def _extract_provider(model_string: str) -> str:
+    """Extract the provider prefix from a 'provider/model-id' string."""
+    if "/" in model_string:
+        return model_string.split("/", 1)[0]
+    return model_string
+
+
+# Providers that run locally and have no API pricing.
+_FREE_PROVIDERS = {"ollama"}
+
+
+def _make_cost_tracker(config: RunConfig) -> CostTracker:
+    """Create a CostTracker, skipping pricing lookup for free providers."""
+    provider = _extract_provider(config.model)
+    if provider in _FREE_PROVIDERS:
+        return CostTracker(max_cost=config.max_cost)
+    return CostTracker(model_id=_extract_model_id(config.model), max_cost=config.max_cost)
 
 
 def evaluate_task(
@@ -96,7 +115,7 @@ def _evaluate_layer1(
         layer=config.layer, code_block=code_block,
     )
 
-    cost_tracker = CostTracker(model_id=_extract_model_id(config.model), max_cost=config.max_cost)
+    cost_tracker = _make_cost_tracker(config)
     runner = EngineLoop(adapter=adapter, middlewares=[cost_tracker], max_turns=1)
     loop_result = runner.run(messages)
 
@@ -140,7 +159,7 @@ def _evaluate_layer2(
         )
 
         tool_logger = ToolLogger()
-        cost_tracker = CostTracker(model_id=_extract_model_id(config.model), max_cost=config.max_cost)
+        cost_tracker = _make_cost_tracker(config)
         runner = EngineLoop(
             adapter=adapter,
             tools=[ReadFileTool, SearchTool, ListDirTool],

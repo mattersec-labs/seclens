@@ -7,7 +7,7 @@ name = "seclens"
 version = "0.1.0"
 description = "LLM security vulnerability detection benchmark"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 license = {text = "MIT"}
 dependencies = [
     "engine-harness[all]",
@@ -35,6 +35,9 @@ include = ["seclens*"]
 
 [tool.setuptools.package-data]
 seclens = ["py.typed", "prompts/*.yaml"]
+
+[tool.uv.sources]
+engine-harness = { path = "../engine-harness", editable = true }
 
 [tool.ruff]
 line-length = 120

@@ -266,7 +266,6 @@ def run_command(
             return _build_display()
 
     display = _DynamicDisplay()
-    live: Live | None = None
     ptask = None
 
     def _mark_running(task: Task) -> None:
@@ -300,14 +299,16 @@ def run_command(
 
         if result.error:
             status = Text("✘", style="bold red")
-            score = f"[dim]{result.error[:40]}[/dim]"
+            task_id_display = f"{task.id}\n[dim red]{result.error}[/dim red]"
+            score = _format_score(result.scores.earned, result.scores.max_task_points)
         else:
             status = Text("✔", style="bold green")
+            task_id_display = task.id
             score = _format_score(result.scores.earned, result.scores.max_task_points)
 
         with state_lock:
             task_states[task.id] = {
-                "task_id": task.id,
+                "task_id": task_id_display,
                 "category": task.ground_truth.category,
                 "repo": _repo_name(task.repository.url),
                 "language": task.repository.language,
@@ -322,7 +323,7 @@ def run_command(
             display,
             console=console,
             refresh_per_second=12,
-        ) as live:
+        ):
             ptask = progress.add_task("Evaluating", total=len(pending_tasks))
 
             if config.workers == 1:
