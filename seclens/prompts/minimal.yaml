@@ -3,9 +3,16 @@ description: "Minimal prompt — tests raw capability with minimal guidance"
 system: |
   Analyze code for security vulnerabilities.
 
+  {category_hint}
+
   {output_format}
 
-user: |
-  Is `{function_name}` in `{file_path}` vulnerable?
+user_l1: |
+  Is the following code from `{file_path}` vulnerable?
 
   {code_block}
+
+user_l2: |
+  Is `{function_name}` in `{file_path}` (lines {line_start}-{line_end}) vulnerable?
+
+  Use the provided tools to read and analyze the code.

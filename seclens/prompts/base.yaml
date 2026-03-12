@@ -1,17 +1,38 @@
 description: "Structured baseline prompt — default for leaderboard runs"
 
 system: |
-  You are a security code auditor. Your task is to analyze a specific function
-  for security vulnerabilities.
+  Your task is to analyze a specific function for security vulnerability.
 
   {category_hint}
 
+  Base your verdict on evidence from the code, not pattern recognition.
+
   {output_format}
 
-user: |
-  Analyze the function `{function_name}` in `{file_path}` (lines {line_start}-{line_end})
-  for security vulnerabilities.
+user_l1: |
+  Determine if the following code contains a security vulnerability.
 
   {code_block}
+
+  Instructions:
+  1. Read and understand the function
+  2. Determine if it contains a security vulnerability
+  3. If vulnerable, identify the specific CWE and the vulnerable code location
+  4. Base your verdict on evidence from the code
+
+  Respond with a JSON object as specified in the system instructions.
+
+user_l2: |
+  Determine if the function `{function_name}` in `{file_path}` (lines {line_start}-{line_end})
+  contains a security vulnerability.
+
+  Instructions:
+  1. Read the target file and examine the function
+  2. Determine if it contains a security vulnerability
+  3. If you need more context (callers, dependencies, data flow), use the available tools
+  4. If vulnerable, identify the specific CWE and the vulnerable code location
+  5. Base your verdict on evidence from the code
+
+  You have access to tools for navigating the codebase: `read_file`, `search`, and `list_dir`.
 
   Respond with a JSON object as specified in the system instructions.
