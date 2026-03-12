@@ -157,23 +157,18 @@ def run_command(
 
     OUT_DIR.mkdir(exist_ok=True)
 
-    # Run config panel
-    _print_config(config, output_path, debug_path)
-
     # Load tasks
     tasks = load_dataset(config.dataset)
-    console.print(f"  [bold]Tasks loaded:[/bold] {len(tasks)}")
 
     # Resumability
     completed_ids: set[str] = set()
     if config.resume and output_path.exists():
         completed_ids = get_completed_ids(output_path)
-        console.print(
-            f"  [bold]Resuming:[/bold] {len(completed_ids)} already done",
-        )
 
     pending_tasks = [t for t in tasks if t.id not in completed_ids]
-    console.print(f"  [bold]Tasks to run:[/bold] {len(pending_tasks)}")
+
+    # Run config panel (includes task count)
+    _print_config(config, output_path, debug_path, len(tasks), len(completed_ids))
     console.print()
 
     if config.dry_run:
@@ -220,7 +215,7 @@ def run_command(
             header_style=_HEADER,
             border_style="grey35",
         )
-        table.add_column("Status", width=10, no_wrap=True)
+        table.add_column("Status", width=10, no_wrap=True, justify="center")
         table.add_column("Task ID", ratio=4, style=_TEXT)
         table.add_column("Category", ratio=1, style=_TEXT)
         table.add_column("Repository", ratio=1, style=_TEXT)
@@ -248,7 +243,17 @@ def run_command(
     def _build_display() -> Table:
         """Build combined progress bar + task table as a grid layout."""
         layout = Table.grid(expand=True)
-        layout.add_row(progress)
+
+        # Wrap progress bar in a fixed-width container matching the config panel
+        if _config_panel_width > 0:
+            progress_box = Table.grid(expand=False)
+            progress_box.add_column(width=_config_panel_width)
+            progress_box.add_row(progress)
+            layout.add_row(progress_box)
+        else:
+            layout.add_row(progress)
+
+        layout.add_row("")  # spacing
         task_table = _build_task_table()
         if task_table.row_count:
             layout.add_row(task_table)
@@ -294,11 +299,11 @@ def run_command(
         results.append(result)
 
         if result.error:
-            status = Text("✘ FAIL", style="bold red")
+            status = Text("✘", style="bold red")
             score = f"[dim]{result.error[:40]}[/dim]"
         else:
-            status = Text("✔ DONE", style="bold green")
-            score = f"{result.scores.earned}/{result.scores.max_task_points} pts"
+            status = Text("✔", style="bold green")
+            score = _format_score(result.scores.earned, result.scores.max_task_points)
 
         with state_lock:
             task_states[task.id] = {
@@ -316,7 +321,7 @@ def run_command(
         with Live(
             display,
             console=console,
-            refresh_per_second=4,
+            refresh_per_second=12,
         ) as live:
             ptask = progress.add_task("Evaluating", total=len(pending_tasks))
 
@@ -362,6 +367,8 @@ def _print_config(
     config: RunConfig,
     output_path: Path,
     debug_path: Path | None,
+    total_tasks: int,
+    completed_tasks: int,
 ) -> None:
     """Print run configuration as a compact panel."""
     info = Table.grid(padding=(0, 2))
@@ -373,18 +380,34 @@ def _print_config(
     info.add_row("Mode", f"{config.mode}")
     info.add_row("Prompt", f"{config.prompt}")
     info.add_row("Workers", str(config.workers))
+    tasks_value = str(total_tasks)
+    if completed_tasks:
+        tasks_value += f" ({completed_tasks} already done)"
+    info.add_row("Tasks", tasks_value)
     info.add_row("Output", str(output_path))
     if debug_path:
         info.add_row("Debug", str(debug_path))
 
-    console.print(
-        Panel(
-            info,
-            title="[bold]SecLens Run[/bold]",
-            border_style="blue",
-            expand=False,
-        )
+    panel = Panel(
+        info,
+        title="[bold]SecLens Run[/bold]",
+        border_style="blue",
+        expand=False,
     )
+
+    # Measure the actual rendered panel width so the progress bar can match it
+    import io
+    buf_console = Console(file=io.StringIO(), width=console.width, no_color=True)
+    buf_console.print(panel)
+    rendered = buf_console.file.getvalue()
+    global _config_panel_width
+    lines = rendered.splitlines()
+    _config_panel_width = max((len(line) for line in lines), default=0)
+
+    console.print(panel)
+
+
+_config_panel_width: int = 0
 
 
 def _print_run_summary(
@@ -454,6 +477,23 @@ def _result_filename(config: RunConfig) -> str:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     model_slug = config.model.replace("/", "_")
     return f"results_{model_slug}_L{config.layer}_{config.mode}_{timestamp}.jsonl"
+
+
+def _format_score(earned: float, max_points: float) -> str:
+    """Format score with colour based on percentage."""
+    label = f"{earned}/{max_points} pts"
+    if max_points == 0:
+        return label
+    pct = earned / max_points
+    if pct <= 0:
+        color = "red"
+    elif pct < 0.5:
+        color = "dark_orange"
+    elif pct < 1.0:
+        color = "yellow"
+    else:
+        color = "green"
+    return f"[{color}]{label}[/{color}]"
 
 
 def _repo_name(url: str) -> str:
