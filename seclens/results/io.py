@@ -45,6 +45,12 @@ def read_results(path: Path) -> list[TaskResult]:
     if not path.exists():
         raise FileNotFoundError(f"Results file not found: {path}")
 
+    if path.name.startswith("debug_"):
+        raise ValueError(
+            f"'{path.name}' is a debug file, not a results file. "
+            f"Use the corresponding results file instead: '{path.name.removeprefix('debug_')}'"
+        )
+
     results: list[TaskResult] = []
     with open(path) as f:
         for line_num, line in enumerate(f, start=1):
