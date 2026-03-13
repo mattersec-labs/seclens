@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class TaskType(StrEnum):
@@ -61,6 +62,13 @@ class TaskMetadata(BaseModel):
 
     disclosure_date: str | None = None
     cve_id: str | None = None
+
+    @field_validator("disclosure_date", mode="before")
+    @classmethod
+    def _coerce_date(cls, v: str | datetime | None) -> str | None:
+        if isinstance(v, datetime):
+            return v.strftime("%Y-%m-%d")
+        return v
     paired_with: str | None = None
     sast_rule: str | None = None
     sast_tool: str | None = None
