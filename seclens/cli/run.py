@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -350,6 +351,7 @@ def run_command(
         if sandbox_manager:
             console.print("[dim]Cleaning up sandboxes...[/dim]")
             sandbox_manager.cleanup_all()
+            console.print("[dim]Done.[/dim]")
 
     # Summary
     _print_run_summary(results, output_path, interrupted)
@@ -357,6 +359,13 @@ def run_command(
     # Auto-generate report if evaluation completed successfully
     if results and not interrupted:
         _run_report(output_path)
+
+    # Force-exit on interrupt — ThreadPoolExecutor worker threads may still be
+    # blocked on LLM API calls with long timeouts.  Normal shutdown would hang
+    # until every thread finishes.  os._exit bypasses that cleanly after we've
+    # already flushed results and cleaned up sandboxes.
+    if interrupted:
+        os._exit(130)
 
 
 # ---------------------------------------------------------------------------

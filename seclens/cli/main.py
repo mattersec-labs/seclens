@@ -3,6 +3,13 @@
 from __future__ import annotations
 
 import logging
+import os
+
+# Suppress multiprocessing resource_tracker warnings about leaked semaphores.
+# HuggingFace datasets creates semaphores internally; on forced exit (Ctrl-C)
+# the tracker subprocess warns about them.  PYTHONWARNINGS is inherited by
+# child processes — warnings.filterwarnings only affects the current process.
+os.environ.setdefault("PYTHONWARNINGS", "ignore::UserWarning:multiprocessing.resource_tracker")
 
 import typer
 
