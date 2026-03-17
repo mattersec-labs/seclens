@@ -92,7 +92,7 @@ class TestScoreLocation:
         assert score.location == 1.0
 
     def test_high_iou_continuous(self) -> None:
-        """IoU 0.833 with recall 100% → score = 0.833."""
+        """IoU 11/14 ≈ 0.79, rounded to 2 decimals."""
         pred_loc = Location(file="app.py", line_start=9, line_end=22)  # 14 lines
         gt_loc = Location(file="app.py", line_start=10, line_end=20)   # 11 lines
         pr = ParseResult(
@@ -102,8 +102,8 @@ class TestScoreLocation:
         )
         gt = GroundTruth(vulnerable=True, cwe="CWE-89", location=gt_loc)
         score = score_task(pr, gt, max_task_points=3)
-        # intersection: 10-20 = 11 lines, union: 9-22 = 14 lines, IoU = 11/14
-        assert abs(score.location - 11 / 14) < 1e-9
+        # intersection: 10-20 = 11 lines, union: 9-22 = 14 lines, IoU = 11/14 ≈ 0.7857
+        assert score.location == round(11 / 14, 2)
 
     def test_broad_prediction_containing_gt(self) -> None:
         """Broad prediction containing narrow GT → low but non-zero score."""
@@ -196,7 +196,7 @@ class TestRecallThreshold:
         # intersection: 15-20 = 6 lines, recall = 6/11 ≈ 0.545
         score = self._make_score(pred, gt, 0.5)
         assert score > 0.0
-        assert abs(score - 6 / 16) < 1e-9  # IoU = 6/16
+        assert score == round(6 / 16, 2)  # IoU = 6/16 ≈ 0.375 → 0.38
 
     def test_threshold_0_8_rejects_low_recall(self) -> None:
         """Recall ~55% fails at threshold 0.8."""

@@ -39,8 +39,8 @@ def score_task(
 
     # Positive task: score all three dimensions
     cwe = _score_cwe(parsed, ground_truth)
-    location = _score_location(parsed, ground_truth, recall_threshold=recall_threshold)
-    earned = verdict + cwe + location
+    location = round(_score_location(parsed, ground_truth, recall_threshold=recall_threshold), 2)
+    earned = round(verdict + cwe + location, 2)
 
     return TaskScore(verdict=verdict, cwe=cwe, location=location, earned=earned, max_task_points=max_task_points)
 
