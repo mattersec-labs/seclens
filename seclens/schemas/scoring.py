@@ -13,14 +13,15 @@ from seclens.schemas.task import TaskType
 class TaskScore(BaseModel):
     """Per-task scoring across three dimensions.
 
-    Negative tasks: cwe=0, location=0 hardcoded — only verdict scored.
+    Negative tasks: cwe=0, location=0.0 hardcoded — only verdict scored.
     Positive tasks: all three dimensions scored.
+    Location is continuous (0.0–1.0) based on IoU with a recall gate.
     """
 
     verdict: Literal[0, 1]
     cwe: Literal[0, 1]
-    location: Literal[0, 1]
-    earned: int = Field(ge=0, le=3)
+    location: float = Field(ge=0.0, le=1.0)
+    earned: float = Field(ge=0.0, le=3.0)
     max_task_points: Literal[1, 3]
 
 

@@ -120,7 +120,10 @@ def _evaluate_layer1(
     loop_result = runner.run(messages)
 
     parse_result = parse_response(loop_result.final_response.content or "")
-    scores = score_task(parse_result, task.ground_truth, task.max_task_points)
+    scores = score_task(
+        parse_result, task.ground_truth, task.max_task_points,
+        recall_threshold=config.location_recall_threshold,
+    )
     metrics = _build_metrics(loop_result, cost_tracker)
 
     return EvalOutput(
@@ -170,7 +173,10 @@ def _evaluate_layer2(
         loop_result = runner.run(messages)
 
         parse_result = parse_response(loop_result.final_response.content or "")
-        scores = score_task(parse_result, task.ground_truth, task.max_task_points)
+        scores = score_task(
+            parse_result, task.ground_truth, task.max_task_points,
+            recall_threshold=config.location_recall_threshold,
+        )
         metrics = _build_metrics(loop_result, cost_tracker, tool_logger)
 
         return EvalOutput(
@@ -235,7 +241,7 @@ def _error_result(task: Task, run_metadata: RunMetadata, error: str) -> TaskResu
         run_metadata=run_metadata,
         parse_result=ParseResult(status=ParseStatus.FAILED, raw_response=""),
         scores=TaskScore(
-            verdict=0, cwe=0, location=0, earned=0,
+            verdict=0, cwe=0, location=0.0, earned=0.0,
             max_task_points=task.max_task_points,
         ),
         error=error,

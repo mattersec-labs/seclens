@@ -120,6 +120,13 @@ def run_command(
             help="Validate config and show task count without running",
         ),
     ] = False,
+    location_recall_threshold: Annotated[
+        float,
+        typer.Option(
+            "--location-recall-threshold",
+            help="Minimum GT recall for location credit (0.0–1.0)",
+        ),
+    ] = 1.0,
     debug: Annotated[
         bool,
         typer.Option(
@@ -150,6 +157,7 @@ def run_command(
         seed=seed,
         resume=resume,
         dry_run=dry_run,
+        location_recall_threshold=location_recall_threshold,
     )
 
     result_filename = _result_filename(config)

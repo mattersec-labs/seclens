@@ -86,7 +86,7 @@ def _compute_core_metrics(results: list[TaskResult], seed: int) -> CoreMetrics:
     cwe_scores = [r.scores.cwe for r in correct_positives]
     cwe_ci = _bootstrap_ci(cwe_scores, None, _mean_ratio, seed) if cwe_scores else _zero_ci()
 
-    # Location accuracy: among positive tasks with correct verdict
+    # Location accuracy: mean IoU among positive tasks with correct verdict
     loc_scores = [r.scores.location for r in correct_positives]
     loc_ci = _bootstrap_ci(loc_scores, None, _mean_ratio, seed) if loc_scores else _zero_ci()
 
