@@ -54,6 +54,7 @@ class GroundTruth(BaseModel):
     vulnerable: bool
     cwe: str | None = None
     category: str | None = None
+    severity: Literal["critical", "high", "medium", "low"] | None = None
     location: Location | None = None
 
 

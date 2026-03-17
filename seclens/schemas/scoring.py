@@ -50,6 +50,7 @@ class RunMetadata(BaseModel):
     timestamp: str
     seclens_version: str
     seed: int
+    location_recall_threshold: float = 1.0
 
 
 class TaskResult(BaseModel):
@@ -59,6 +60,8 @@ class TaskResult(BaseModel):
     task_type: TaskType
     task_category: str | None = None
     task_language: str
+    ground_truth_cwe: str | None = None
+    task_severity: str | None = None
     run_metadata: RunMetadata
     parse_result: ParseResult
     scores: TaskScore

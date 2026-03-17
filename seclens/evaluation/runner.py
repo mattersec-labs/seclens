@@ -132,6 +132,8 @@ def _evaluate_layer1(
             task_type=task.type,
             task_category=task.ground_truth.category,
             task_language=task.repository.language,
+            ground_truth_cwe=task.ground_truth.cwe,
+            task_severity=getattr(task.ground_truth, "severity", None),
             run_metadata=run_metadata,
             parse_result=parse_result,
             scores=scores,
@@ -185,6 +187,8 @@ def _evaluate_layer2(
                 task_type=task.type,
                 task_category=task.ground_truth.category,
                 task_language=task.repository.language,
+                ground_truth_cwe=task.ground_truth.cwe,
+                task_severity=getattr(task.ground_truth, "severity", None),
                 run_metadata=run_metadata,
                 parse_result=parse_result,
                 scores=scores,
@@ -207,6 +211,7 @@ def _build_run_metadata(config: RunConfig) -> RunMetadata:
         timestamp=datetime.now(timezone.utc).isoformat(),
         seclens_version=seclens.__version__,
         seed=config.seed,
+        location_recall_threshold=config.location_recall_threshold,
     )
 
 
@@ -238,6 +243,8 @@ def _error_result(task: Task, run_metadata: RunMetadata, error: str) -> TaskResu
         task_type=task.type,
         task_category=task.ground_truth.category,
         task_language=task.repository.language,
+        ground_truth_cwe=task.ground_truth.cwe,
+        task_severity=getattr(task.ground_truth, "severity", None),
         run_metadata=run_metadata,
         parse_result=ParseResult(status=ParseStatus.FAILED, raw_response=""),
         scores=TaskScore(
