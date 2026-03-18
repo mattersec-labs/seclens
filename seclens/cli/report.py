@@ -1,4 +1,4 @@
-"""CLI command: seclens report — generate aggregate metrics from results."""
+"""CLI command: seclens report — role-based analysis of evaluation results."""
 
 from __future__ import annotations
 
@@ -7,86 +7,135 @@ from typing import Annotated, Optional
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
 from seclens.results.io import read_results
-from seclens.scoring.aggregate import compute_aggregate
+from seclens.roles.scorer import generate_multi_role_report, generate_role_report
+from seclens.roles.weights import list_roles
+from seclens.schemas.role_report import MultiRoleReport, RoleReport
 
 console = Console()
+
+_GRADE_COLORS = {"A": "green", "B": "blue", "C": "yellow", "D": "dark_orange", "F": "red"}
 
 
 def report_command(
     run: Annotated[Path, typer.Option("--run", "-r", help="Path to results JSONL file")],
-    output: Annotated[Optional[Path], typer.Option(
-        "--out", "-o", help="Output path (.json for JSON, omit for terminal)",
-    )] = None,
+    role: Annotated[
+        Optional[str],
+        typer.Option("--role", help=f"Role name ({', '.join(list_roles())})"),
+    ] = None,
+    all_roles: Annotated[
+        bool,
+        typer.Option("--all-roles", help="Generate reports for all roles"),
+    ] = False,
+    output: Annotated[
+        Optional[Path],
+        typer.Option("--out", "-o", help="Output JSON file"),
+    ] = None,
 ) -> None:
-    """Generate an aggregate report from evaluation results."""
-    results = read_results(run)
+    """Generate a role-based report from evaluation results."""
+    if not role and not all_roles:
+        console.print("[red]Must specify --role or --all-roles.[/red]")
+        console.print(f"[dim]Available roles: {', '.join(list_roles())}[/dim]")
+        raise typer.Exit(code=1)
 
+    if role and all_roles:
+        console.print("[red]Cannot use both --role and --all-roles.[/red]")
+        raise typer.Exit(code=1)
+
+    results = read_results(run)
     if not results:
         console.print("[yellow]No results found in file.[/yellow]")
         raise typer.Exit(code=1)
 
-    run_metadata = results[0].run_metadata
-    report = compute_aggregate(results, run_metadata)
-
-    if output is not None and output.suffix == ".json":
-        output.write_text(report.model_dump_json(indent=2))
-        console.print(f"[green]Report written to {output}[/green]")
+    if all_roles:
+        multi = generate_multi_role_report(results)
+        if output:
+            output.write_text(multi.model_dump_json(indent=2))
+            console.print(f"[green]Multi-role report written to {output}[/green]")
+        else:
+            _print_multi_role(multi)
     else:
-        _print_terminal_report(report)
+        report = generate_role_report(results, role)
+        if output:
+            output.write_text(report.model_dump_json(indent=2))
+            console.print(f"[green]Role report written to {output}[/green]")
+        else:
+            _print_single_role(report)
 
 
-def _print_terminal_report(report) -> None:  # noqa: ANN001
-    """Print the aggregate report to the terminal using Rich."""
-    from rich.table import Table
+def _print_single_role(report: RoleReport) -> None:
+    """Print a single role report to the terminal."""
+    grade_color = _GRADE_COLORS.get(report.grade, "white")
 
-    # Leaderboard score
-    ls = report.leaderboard_score
+    # Header panel
+    header = Table.grid(padding=(0, 2))
+    header.add_column(style="bold magenta")
+    header.add_column()
+    header.add_row("Decision Score", f"[bold]{report.decision_score}[/bold] / 100")
+    header.add_row("Grade", f"[bold {grade_color}]{report.grade}[/bold {grade_color}]")
+    header.add_row("Tasks", str(report.total_tasks))
+    header.add_row("Layer", str(report.layer))
+
     console.print()
-    console.print("[bold]Leaderboard Score[/bold]")
-    console.print(f"  Score: {ls.mean * 100:.2f}% (95% CI: [{ls.ci_lower * 100:.2f}%, {ls.ci_upper * 100:.2f}%])")
+    console.print(Panel(
+        header,
+        title=f"[bold]{report.role_name} Report: {report.model}[/bold]",
+        border_style=grade_color,
+    ))
 
-    # Core metrics
-    core = report.core
+    # Category breakdown
     console.print()
-    console.print("[bold]Core Metrics[/bold]")
+    cat_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
+    cat_table.add_column("Category", style="cyan")
+    cat_table.add_column("Weight", justify="right", style="grey74")
+    cat_table.add_column("Score", justify="right", style="grey74")
+    cat_table.add_column("Pct", justify="right", style="grey74")
+
+    for cat in report.categories:
+        pct = cat.weighted_score / cat.total_weight * 100 if cat.total_weight > 0 else 0
+        cat_table.add_row(
+            cat.name,
+            f"{cat.total_weight:.1f}",
+            f"{cat.weighted_score:.1f}",
+            f"{pct:.1f}%",
+        )
+
+    console.print(cat_table)
+
+    # Excluded dimensions
+    if report.excluded_dimensions:
+        console.print()
+        console.print(f"[dim]Excluded dimensions (no data): {', '.join(report.excluded_dimensions)}[/dim]")
+
+    # Recommendation
+    console.print()
+    console.print(f"[bold]Recommendation:[/bold] {report.recommendation}")
+    console.print()
+
+
+def _print_multi_role(multi: MultiRoleReport) -> None:
+    """Print all-roles summary to the terminal."""
     table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
-    table.add_column("Metric", style="cyan")
-    table.add_column("Mean", justify="right", style="grey74")
-    table.add_column("95% CI", justify="right", style="grey74")
-    table.add_row("Tasks", str(core.task_count), "")
-    table.add_row(
-        "Verdict MCC",
-        f"{core.verdict_mcc.mean:.4f}",
-        f"[{core.verdict_mcc.ci_lower:.4f}, {core.verdict_mcc.ci_upper:.4f}]",
-    )
-    table.add_row(
-        "CWE Accuracy",
-        f"{core.cwe_accuracy.mean:.4f}",
-        f"[{core.cwe_accuracy.ci_lower:.4f}, {core.cwe_accuracy.ci_upper:.4f}]",
-    )
-    table.add_row(
-        "Location Accuracy",
-        f"{core.location_accuracy.mean:.4f}",
-        f"[{core.location_accuracy.ci_lower:.4f}, {core.location_accuracy.ci_upper:.4f}]",
-    )
-    console.print(table)
+    table.add_column("Role", style="cyan")
+    table.add_column("Score", justify="right")
+    table.add_column("Grade", justify="center")
 
-    # Cost
-    cost = report.cost
-    console.print()
-    console.print("[bold]Cost Metrics[/bold]")
-    cost_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
-    cost_table.add_column("Metric", style="cyan")
-    cost_table.add_column("Value", justify="right", style="grey74")
-    cost_table.add_row("Total Cost", f"${cost.total_cost_usd:.4f}")
-    cost_table.add_row("Avg Cost/Task", f"${cost.avg_cost_per_task:.4f}")
-    if cost.mcc_per_dollar is not None:
-        cost_table.add_row("MCC/Dollar", f"{cost.mcc_per_dollar:.2f}")
-    console.print(cost_table)
+    for role_name in multi.ranking:
+        report = multi.reports[role_name]
+        grade_color = _GRADE_COLORS.get(report.grade, "white")
+        table.add_row(
+            report.role_name,
+            f"{report.decision_score:.1f}",
+            f"[bold {grade_color}]{report.grade}[/bold {grade_color}]",
+        )
 
-    # Summary
     console.print()
-    console.print(f"[bold]Total:[/bold] {report.task_count} tasks | "
-                  f"{report.errors} errors | {report.parse_failures} parse failures")
+    console.print(Panel(
+        table,
+        title=f"[bold]Role Scores: {multi.model}[/bold]",
+        border_style="blue",
+    ))
+    console.print()
