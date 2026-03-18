@@ -105,10 +105,12 @@ def _print_single_role(report: RoleReport) -> None:
 
     console.print(cat_table)
 
-    # Excluded dimensions
+    # Excluded dimensions — show human-readable names
     if report.excluded_dimensions:
+        from seclens.roles.dimensions import DIMENSION_NAMES
+        excluded_names = [DIMENSION_NAMES.get(d, d) for d in report.excluded_dimensions]
         console.print()
-        console.print(f"[dim]Excluded dimensions (no data): {', '.join(report.excluded_dimensions)}[/dim]")
+        console.print(f"[dim]Excluded dimensions (no data): {', '.join(excluded_names)}[/dim]")
 
     # Recommendation
     console.print()
