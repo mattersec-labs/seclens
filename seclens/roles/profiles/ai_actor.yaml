@@ -1,65 +1,26 @@
+role: ai_actor
 name: "AI as Actor"
-description: "Can this model operate autonomously on security tasks without human supervision?"
+description: "Does the agent know what it can and can't do?"
 version: "1.0"
 
 dimensions:
-  # A: Detection Accuracy (9.5)
-  - { id: 1,  weight: 2.0 }
-  - { id: 2,  weight: 1.5 }
-  - { id: 3,  weight: 1.0 }
-  - { id: 4,  weight: 2.0 }
-  - { id: 5,  weight: 3.0 }
-  # B: Vulnerability Knowledge (9.0)
-  - { id: 6,  weight: 2.0 }
-  - { id: 7,  weight: 2.0 }
-  - { id: 8,  weight: 2.0 }
-  - { id: 9,  weight: 1.5 }
-  - { id: 10, weight: 1.5 }
-  # C: Localization (8.0)
-  - { id: 11, weight: 2.0 }
-  - { id: 12, weight: 2.0 }
-  - { id: 13, weight: 1.5 }
-  - { id: 14, weight: 1.5 }
-  - { id: 15, weight: 1.0 }
-  # D: Reasoning (11.5)
-  - { id: 16, weight: 3.0 }
-  - { id: 17, weight: 3.0 }
-  - { id: 18, weight: 0.5 }
-  - { id: 19, weight: 2.0 }
-  - { id: 20, weight: 3.0 }
-  # E: Efficiency (5.5)
-  - { id: 21, weight: 1.0 }
-  - { id: 22, weight: 1.0 }
-  - { id: 23, weight: 1.0 }
-  - { id: 24, weight: 1.5 }
-  - { id: 25, weight: 1.0 }
-  # F: Tool-Use (17.0) — autonomous navigation
-  - { id: 26, weight: 3.0 }
-  - { id: 27, weight: 3.0 }
-  - { id: 28, weight: 4.0 }
-  - { id: 29, weight: 4.0 }
-  - { id: 30, weight: 3.0 }
-  # G: Robustness (13.0) — reliability for unsupervised ops
-  - { id: 31, weight: 3.0 }
-  - { id: 32, weight: 2.0 }
-  - { id: 33, weight: 3.0 }
-  - { id: 34, weight: 2.0 }
-  - { id: 35, weight: 3.0 }
-  # H: Risk (10.5)
-  - { id: 36, weight: 2.0 }
-  - { id: 37, weight: 2.0 }
-  - { id: 38, weight: 2.0 }
-  - { id: 39, weight: 1.5 }
-  - { id: 40, weight: 3.0 }
-  # I: Scalability (8.5)
-  - { id: 41, weight: 1.5 }
-  - { id: 42, weight: 1.0 }
-  - { id: 43, weight: 3.0 }
-  - { id: 44, weight: 2.0 }
-  - { id: 45, weight: 1.0 }
-  # J: Autonomy (23.0) — primary concern
-  - { id: 46, weight: 5.0 }
-  - { id: 47, weight: 4.0 }
-  - { id: 48, weight: 5.0 }
-  - { id: 49, weight: 4.0 }
-  - { id: 50, weight: 5.0 }
+  D1:  { weight: 10, name: "MCC" }
+  D4:  { weight: 7,  name: "F1" }
+  D9:  { weight: 3,  name: "CWE Coverage Breadth" }
+  D11: { weight: 4,  name: "Cross-Language Consistency" }
+  D14: { weight: 2,  name: "Evidence Completeness" }
+  D25: { weight: 5,  name: "Turns per Task" }
+  D26: { weight: 5,  name: "Navigation Efficiency" }
+  D27: { weight: 8,  name: "Tool Effectiveness" }
+  D31: { weight: 3,  name: "Parse Success Rate" }
+  D32: { weight: 6,  name: "Format Compliance" }
+  D33: { weight: 6,  name: "Error Rate" }
+  D34: { weight: 12, name: "Autonomous Completion" }
+  D35: { weight: 9,  name: "Graceful Degradation" }
+
+categories:
+  Detection: [D1, D4]
+  Coverage: [D9, D11]
+  Reasoning: [D14]
+  "Tool-Use": [D25, D26, D27]
+  Robustness: [D31, D32, D33, D34, D35]

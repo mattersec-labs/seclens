@@ -1,65 +1,25 @@
+role: head_of_engineering
 name: "Head of Engineering"
 description: "Will this model help or hurt my team's velocity and code quality?"
 version: "1.0"
 
 dimensions:
-  # A: Detection Accuracy (14.0)
-  - { id: 1,  weight: 2.0 }
-  - { id: 2,  weight: 4.0 }
-  - { id: 3,  weight: 5.0 }
-  - { id: 4,  weight: 1.0 }
-  - { id: 5,  weight: 2.0 }
-  # B: Vulnerability Knowledge (3.5)
-  - { id: 6,  weight: 1.0 }
-  - { id: 7,  weight: 0.5 }
-  - { id: 8,  weight: 0.5 }
-  - { id: 9,  weight: 1.0 }
-  - { id: 10, weight: 0.5 }
-  # C: Localization (13.0)
-  - { id: 11, weight: 3.0 }
-  - { id: 12, weight: 3.0 }
-  - { id: 13, weight: 2.0 }
-  - { id: 14, weight: 2.0 }
-  - { id: 15, weight: 3.0 }
-  # D: Reasoning (5.5)
-  - { id: 16, weight: 1.5 }
-  - { id: 17, weight: 1.0 }
-  - { id: 18, weight: 1.0 }
-  - { id: 19, weight: 1.0 }
-  - { id: 20, weight: 1.0 }
-  # E: Efficiency (13.0)
-  - { id: 21, weight: 3.0 }
-  - { id: 22, weight: 2.0 }
-  - { id: 23, weight: 2.0 }
-  - { id: 24, weight: 4.0 }
-  - { id: 25, weight: 2.0 }
-  # F: Tool-Use (8.5)
-  - { id: 26, weight: 1.5 }
-  - { id: 27, weight: 2.0 }
-  - { id: 28, weight: 1.5 }
-  - { id: 29, weight: 1.5 }
-  - { id: 30, weight: 2.0 }
-  # G: Robustness (13.0)
-  - { id: 31, weight: 3.0 }
-  - { id: 32, weight: 2.0 }
-  - { id: 33, weight: 3.0 }
-  - { id: 34, weight: 2.0 }
-  - { id: 35, weight: 3.0 }
-  # H: Risk (8.0)
-  - { id: 36, weight: 2.0 }
-  - { id: 37, weight: 1.5 }
-  - { id: 38, weight: 1.0 }
-  - { id: 39, weight: 2.0 }
-  - { id: 40, weight: 1.5 }
-  # I: Scalability (12.0)
-  - { id: 41, weight: 4.0 }
-  - { id: 42, weight: 3.0 }
-  - { id: 43, weight: 2.0 }
-  - { id: 44, weight: 1.0 }
-  - { id: 45, weight: 2.0 }
-  # J: Autonomy (6.0)
-  - { id: 46, weight: 1.0 }
-  - { id: 47, weight: 1.0 }
-  - { id: 48, weight: 1.0 }
-  - { id: 49, weight: 1.0 }
-  - { id: 50, weight: 2.0 }
+  D2:  { weight: 5,  name: "Recall" }
+  D3:  { weight: 12, name: "Precision" }
+  D7:  { weight: 8,  name: "Mean Location IoU" }
+  D8:  { weight: 10, name: "Actionable Finding Rate" }
+  D12: { weight: 3,  name: "Worst Language Floor" }
+  D13: { weight: 4,  name: "SAST FP Filtering" }
+  D18: { weight: 7,  name: "Cost per Task" }
+  D21: { weight: 7,  name: "Wall Time per Task" }
+  D22: { weight: 5,  name: "Throughput" }
+  D23: { weight: 3,  name: "Tokens per Task" }
+  D31: { weight: 7,  name: "Parse Success Rate" }
+  D32: { weight: 3,  name: "Format Compliance" }
+  D33: { weight: 6,  name: "Error Rate" }
+
+categories:
+  Detection: [D2, D3, D7, D8]
+  Coverage: [D12, D13]
+  Efficiency: [D18, D21, D22, D23]
+  Robustness: [D31, D32, D33]

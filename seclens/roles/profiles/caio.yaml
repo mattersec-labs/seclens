@@ -1,65 +1,29 @@
-name: "CAIO / Head of AI"
-description: "Chief AI Officer — Which model unlocks new capabilities while balancing risk and cost?"
+role: caio
+name: "Chief AI Officer"
+description: "Which model unlocks new capabilities while balancing risk and cost?"
 version: "1.0"
 
 dimensions:
-  # A: Detection Accuracy (12.0)
-  - { id: 1,  weight: 3.0 }
-  - { id: 2,  weight: 2.0 }
-  - { id: 3,  weight: 2.0 }
-  - { id: 4,  weight: 2.5 }
-  - { id: 5,  weight: 2.5 }
-  # B: Vulnerability Knowledge (5.0)
-  - { id: 6,  weight: 1.0 }
-  - { id: 7,  weight: 1.5 }
-  - { id: 8,  weight: 0.5 }
-  - { id: 9,  weight: 1.0 }
-  - { id: 10, weight: 1.0 }
-  # C: Localization (2.5)
-  - { id: 11, weight: 0.5 }
-  - { id: 12, weight: 0.5 }
-  - { id: 13, weight: 0.5 }
-  - { id: 14, weight: 0.5 }
-  - { id: 15, weight: 0.5 }
-  # D: Reasoning (11.0)
-  - { id: 16, weight: 2.5 }
-  - { id: 17, weight: 2.5 }
-  - { id: 18, weight: 1.0 }
-  - { id: 19, weight: 2.0 }
-  - { id: 20, weight: 3.0 }
-  # E: Efficiency (10.0)
-  - { id: 21, weight: 2.5 }
-  - { id: 22, weight: 3.0 }
-  - { id: 23, weight: 1.0 }
-  - { id: 24, weight: 1.5 }
-  - { id: 25, weight: 2.0 }
-  # F: Tool-Use (14.0)
-  - { id: 26, weight: 2.5 }
-  - { id: 27, weight: 2.5 }
-  - { id: 28, weight: 3.0 }
-  - { id: 29, weight: 3.0 }
-  - { id: 30, weight: 3.0 }
-  # G: Robustness (10.0)
-  - { id: 31, weight: 2.5 }
-  - { id: 32, weight: 1.5 }
-  - { id: 33, weight: 2.0 }
-  - { id: 34, weight: 2.0 }
-  - { id: 35, weight: 2.0 }
-  # H: Risk (12.0)
-  - { id: 36, weight: 3.0 }
-  - { id: 37, weight: 2.5 }
-  - { id: 38, weight: 2.5 }
-  - { id: 39, weight: 2.0 }
-  - { id: 40, weight: 2.0 }
-  # I: Scalability (8.0)
-  - { id: 41, weight: 2.0 }
-  - { id: 42, weight: 2.5 }
-  - { id: 43, weight: 2.0 }
-  - { id: 44, weight: 1.0 }
-  - { id: 45, weight: 0.5 }
-  # J: Autonomy (18.0) — capability upside
-  - { id: 46, weight: 4.0 }
-  - { id: 47, weight: 3.5 }
-  - { id: 48, weight: 4.0 }
-  - { id: 49, weight: 3.0 }
-  - { id: 50, weight: 3.5 }
+  D1:  { weight: 9,  name: "MCC" }
+  D4:  { weight: 7,  name: "F1" }
+  D9:  { weight: 4,  name: "CWE Coverage Breadth" }
+  D15: { weight: 1,  name: "Reasoning Presence" }
+  D18: { weight: 5,  name: "Cost per Task" }
+  D20: { weight: 8,  name: "MCC per Dollar" }
+  D22: { weight: 6,  name: "Throughput" }
+  D25: { weight: 5,  name: "Turns per Task" }
+  D26: { weight: 3,  name: "Navigation Efficiency" }
+  D27: { weight: 7,  name: "Tool Effectiveness" }
+  D30: { weight: 5,  name: "Severity Coverage" }
+  D31: { weight: 4,  name: "Parse Success Rate" }
+  D32: { weight: 6,  name: "Format Compliance" }
+  D34: { weight: 10, name: "Autonomous Completion" }
+
+categories:
+  Detection: [D1, D4]
+  Coverage: [D9]
+  Reasoning: [D15]
+  Efficiency: [D18, D20, D22]
+  "Tool-Use": [D25, D26, D27]
+  "Risk & Severity": [D30]
+  Robustness: [D31, D32, D34]
