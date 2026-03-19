@@ -74,7 +74,7 @@ class SandboxManager:
             capture_output=True,
             text=True,
             check=True,
-            timeout=120,
+            timeout=300,
         )
         subprocess.run(
             ["git", "fetch", "--depth=1", "origin", commit],
@@ -82,7 +82,7 @@ class SandboxManager:
             capture_output=True,
             text=True,
             check=True,
-            timeout=120,
+            timeout=300,
         )
         subprocess.run(
             ["git", "checkout", commit],
