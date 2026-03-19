@@ -53,7 +53,7 @@ from seclens.schemas.scoring import RunMetadata, TaskMetrics, TaskResult, TaskSc
 
 def _meta() -> RunMetadata:
     return RunMetadata(
-        model="test/model", prompt="base", layer=2, mode="guided",
+        model="test/model", prompt="base", layer="tool-use", mode="guided",
         timestamp="2026-01-01T00:00:00Z", seclens_version="0.1.0", seed=42,
     )
 

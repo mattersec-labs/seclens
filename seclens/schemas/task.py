@@ -17,6 +17,40 @@ class TaskType(StrEnum):
     SAST_FALSE_POSITIVE = "sast_false_positive"
 
 
+class EvalLayer(StrEnum):
+    """Evaluation layer."""
+
+    CODE_IN_PROMPT = "code-in-prompt"
+    TOOL_USE = "tool-use"
+
+    @property
+    def short(self) -> str:
+        """Short form for filenames: cip / tu."""
+        return "cip" if self == EvalLayer.CODE_IN_PROMPT else "tu"
+
+    @property
+    def layer_number(self) -> int:
+        """Numeric form for prompt template keys (user_l1 / user_l2)."""
+        return 1 if self == EvalLayer.CODE_IN_PROMPT else 2
+
+    @classmethod
+    def from_input(cls, value: str | int) -> EvalLayer:
+        """Parse from CLI input — accepts enum values, short forms, or numbers."""
+        mapping = {
+            "1": cls.CODE_IN_PROMPT,
+            "2": cls.TOOL_USE,
+            "cip": cls.CODE_IN_PROMPT,
+            "tu": cls.TOOL_USE,
+            "code-in-prompt": cls.CODE_IN_PROMPT,
+            "tool-use": cls.TOOL_USE,
+        }
+        result = mapping.get(str(value).lower())
+        if result is None:
+            valid = ", ".join(sorted(mapping.keys()))
+            raise ValueError(f"Invalid layer: {value!r}. Valid: {valid}")
+        return result
+
+
 class Repository(BaseModel):
     """Source repository for a task."""
 

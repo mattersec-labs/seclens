@@ -9,6 +9,7 @@ import pytest
 from engine_harness import EngineLoopResult, ModelResponse, TokenUsage
 
 from seclens.evaluation.config import RunConfig
+from seclens.schemas.task import EvalLayer
 from seclens.evaluation.runner import (
     _build_run_metadata,
     _error_result,
@@ -85,12 +86,12 @@ def negative_task() -> Task:
 
 @pytest.fixture()
 def config() -> RunConfig:
-    return RunConfig(model="test/model", dataset="test.jsonl", layer=1, mode="guided")
+    return RunConfig(model="test/model", dataset="test.jsonl", layer="code-in-prompt", mode="guided")
 
 
 @pytest.fixture()
 def config_layer2() -> RunConfig:
-    return RunConfig(model="test/model", dataset="test.jsonl", layer=2, mode="guided", max_turns=5)
+    return RunConfig(model="test/model", dataset="test.jsonl", layer="tool-use", mode="guided", max_turns=5)
 
 
 def _make_engineloop_result(content: str, turns: int = 1) -> EngineLoopResult:
@@ -113,7 +114,7 @@ class TestRunConfig:
     def test_defaults(self) -> None:
         cfg = RunConfig(model="anthropic/claude-sonnet-4-20250514", dataset="sidds020/SecLens:test")
         assert cfg.prompt == "base"
-        assert cfg.layer == 2
+        assert cfg.layer == EvalLayer.TOOL_USE
         assert cfg.mode == "guided"
         assert cfg.max_turns == 200
         assert cfg.workers == 5
@@ -123,7 +124,7 @@ class TestRunConfig:
         cfg = RunConfig(
             model="openai/gpt-4",
             dataset="local.jsonl",
-            layer=1,
+            layer="code-in-prompt",
             mode="open",
             max_turns=5,
             max_cost=1.0,
@@ -131,16 +132,16 @@ class TestRunConfig:
             seed=123,
         )
         assert cfg.model == "openai/gpt-4"
-        assert cfg.layer == 1
+        assert cfg.layer == EvalLayer.CODE_IN_PROMPT
         assert cfg.seed == 123
 
-    def test_invalid_layer(self) -> None:
+    def test_invalid_layer_number(self) -> None:
         with pytest.raises(Exception):
             RunConfig(model="test", dataset="x.jsonl", layer=3)
 
-    def test_invalid_mode(self) -> None:
+    def test_invalid_layer_string(self) -> None:
         with pytest.raises(Exception):
-            RunConfig(model="test", dataset="x.jsonl", mode="invalid")
+            RunConfig(model="test", dataset="x.jsonl", layer="invalid")
 
     def test_min_max_turns(self) -> None:
         with pytest.raises(Exception):
@@ -156,7 +157,7 @@ class TestBuildRunMetadata:
         meta = _build_run_metadata(config)
         assert meta.model == "test/model"
         assert meta.prompt == "base"
-        assert meta.layer == 1
+        assert meta.layer == EvalLayer.CODE_IN_PROMPT
         assert meta.mode == "guided"
         assert meta.seed == 42
         assert meta.seclens_version == "0.1.0"

@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from seclens.schemas.output import ParseResult
-from seclens.schemas.task import TaskType
+from seclens.schemas.task import EvalLayer, TaskType
 
 
 class TaskScore(BaseModel):
@@ -45,8 +45,8 @@ class RunMetadata(BaseModel):
 
     model: str
     prompt: str
-    layer: Literal[1, 2]
-    mode: Literal["guided", "open"]
+    layer: EvalLayer
+    mode: str
     timestamp: str
     seclens_version: str
     seed: int

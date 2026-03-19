@@ -20,7 +20,7 @@ def _make_run_metadata(model: str = "test/model") -> RunMetadata:
     return RunMetadata(
         model=model,
         prompt="base",
-        layer=1,
+        layer="code-in-prompt",
         mode="guided",
         timestamp="2026-03-09T12:00:00Z",
         seclens_version="0.1.0",

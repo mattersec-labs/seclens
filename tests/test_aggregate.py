@@ -9,7 +9,7 @@ from seclens.scoring.aggregate import _mcc, compute_aggregate
 
 def _make_run_metadata() -> RunMetadata:
     return RunMetadata(
-        model="test/model", prompt="base", layer=2, mode="guided",
+        model="test/model", prompt="base", layer="tool-use", mode="guided",
         timestamp="2026-03-09T12:00:00Z", seclens_version="0.1.0", seed=42,
     )
 

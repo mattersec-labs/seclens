@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from seclens.schemas.task import EvalLayer
+
 
 class DimensionScore(BaseModel):
     """Score for a single dimension within a role report."""
@@ -37,7 +39,7 @@ class RoleReport(BaseModel):
     categories: list[CategoryScore]
     dimensions: list[DimensionScore]
     model: str
-    layer: int
+    layer: EvalLayer
     total_tasks: int
     recommendation: str
     excluded_dimensions: list[str] = []

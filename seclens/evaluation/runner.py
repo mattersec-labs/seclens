@@ -19,6 +19,7 @@ from engine_harness import (
 
 import seclens
 from seclens.evaluation.config import RunConfig
+from seclens.schemas.task import EvalLayer
 from seclens.parsing.parser import parse_response
 from seclens.sandbox.manager import SandboxManager, fetch_target_code
 from seclens.schemas.output import ParseResult, ParseStatus
@@ -88,7 +89,7 @@ def evaluate_task(
     run_metadata = _build_run_metadata(config)
 
     try:
-        if config.layer == 1:
+        if config.layer == EvalLayer.CODE_IN_PROMPT:
             return _evaluate_layer1(task, adapter, config, run_metadata)
         return _evaluate_layer2(task, adapter, config, run_metadata, sandbox_manager)
     except Exception as exc:  # noqa: BLE001

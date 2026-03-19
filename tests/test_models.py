@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from seclens.schemas.task import EvalLayer
 from seclens.schemas import (
     AggregateReport,
     ConfidenceInterval,
@@ -231,13 +232,13 @@ class TestRunMetadata:
         meta = RunMetadata(
             model="anthropic/claude-sonnet-4-20250514",
             prompt="base",
-            layer=2,
+            layer="tool-use",
             mode="guided",
             timestamp="2026-03-09T12:00:00Z",
             seclens_version="0.1.0",
             seed=42,
         )
-        assert meta.layer == 2
+        assert meta.layer == EvalLayer.TOOL_USE
         assert meta.mode == "guided"
 
     def test_invalid_layer(self) -> None:
@@ -259,7 +260,7 @@ class TestTaskResult:
             task_category="sql_injection",
             task_language="python",
             run_metadata=RunMetadata(
-                model="m", prompt="base", layer=2, mode="guided",
+                model="m", prompt="base", layer="tool-use", mode="guided",
                 timestamp="2026-03-09T12:00:00Z", seclens_version="0.1.0", seed=42,
             ),
             parse_result=ParseResult(status=ParseStatus.FULL, raw_response="{}"),
@@ -274,7 +275,7 @@ class TestTaskResult:
             task_type=TaskType.TRUE_POSITIVE,
             task_language="python",
             run_metadata=RunMetadata(
-                model="m", prompt="base", layer=2, mode="guided",
+                model="m", prompt="base", layer="tool-use", mode="guided",
                 timestamp="t", seclens_version="0.1.0", seed=42,
             ),
             parse_result=ParseResult(status=ParseStatus.FAILED, raw_response=""),
@@ -290,7 +291,7 @@ class TestTaskResult:
             task_type=TaskType.TRUE_POSITIVE,
             task_language="python",
             run_metadata=RunMetadata(
-                model="m", prompt="base", layer=2, mode="guided",
+                model="m", prompt="base", layer="tool-use", mode="guided",
                 timestamp="t", seclens_version="0.1.0", seed=42,
             ),
             parse_result=ParseResult(status=ParseStatus.FULL, raw_response="{}"),
@@ -346,7 +347,7 @@ class TestReportModels:
             core=core,
             cost=cost,
             run_metadata=RunMetadata(
-                model="m", prompt="base", layer=2, mode="guided",
+                model="m", prompt="base", layer="tool-use", mode="guided",
                 timestamp="t", seclens_version="0.1.0", seed=42,
             ),
             task_count=50,

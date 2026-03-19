@@ -18,7 +18,7 @@ from seclens.schemas.role_report import (
     RoleReport,
 )
 from seclens.schemas.scoring import TaskResult
-from seclens.schemas.task import TaskType
+from seclens.schemas.task import EvalLayer, TaskType
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +185,7 @@ def generate_role_report(
 
     # Auto-detect model and layer from results
     detected_model = model or (results[0].run_metadata.model if results else "unknown")
-    detected_layer = layer or (results[0].run_metadata.layer if results else 1)
+    detected_layer = layer or (results[0].run_metadata.layer if results else EvalLayer.CODE_IN_PROMPT)
 
     return RoleReport(
         role=role,

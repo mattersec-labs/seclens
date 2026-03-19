@@ -63,13 +63,13 @@ def run_command(
         ),
     ] = "base",
     layer: Annotated[
-        int,
+        str,
         typer.Option(
             "--layer",
             "-l",
-            help="Evaluation layer (1=code-in-prompt, 2=tool-use)",
+            help="Evaluation layer (code-in-prompt, tool-use, or 1/2)",
         ),
-    ] = 2,
+    ] = "tool-use",
     mode: Annotated[
         str,
         typer.Option(
@@ -136,9 +136,14 @@ def run_command(
     ] = False,
 ) -> None:
     """Run an evaluation benchmark against a model."""
-    if layer not in (1, 2):
-        console.print(f"[red]Invalid layer: {layer}. Must be 1 or 2.[/red]")
-        raise typer.Exit(code=1)
+    from seclens.schemas.task import EvalLayer
+
+    try:
+        eval_layer = EvalLayer.from_input(layer)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from None
+
     if mode not in ("guided", "open"):
         console.print(
             f"[red]Invalid mode: {mode!r}. Must be 'guided' or 'open'.[/red]",
@@ -149,7 +154,7 @@ def run_command(
         model=model,
         dataset=dataset,
         prompt=prompt,
-        layer=layer,
+        layer=eval_layer,
         mode=mode,
         max_turns=max_turns,
         max_cost=max_cost,
@@ -194,7 +199,7 @@ def run_command(
     except (ValueError, KeyError, ImportError) as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from None
-    sandbox_manager = SandboxManager() if config.layer == 2 else None
+    sandbox_manager = SandboxManager() if config.layer == EvalLayer.TOOL_USE else None
 
     results: list = []
     interrupted = False
@@ -501,7 +506,7 @@ def _result_filename(config: RunConfig) -> str:
     """Generate the result filename from config."""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     model_slug = config.model.replace("/", "_")
-    return f"results_{model_slug}_L{config.layer}_{config.mode}_{timestamp}.jsonl"
+    return f"results_{model_slug}_{config.layer.short}_{config.mode}_{config.prompt}_{timestamp}.jsonl"
 
 
 def _format_score(earned: float, max_points: float) -> str:

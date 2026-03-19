@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
 from pydantic import BaseModel, Field
+
+from seclens.schemas.task import EvalLayer
 
 
 class RunConfig(BaseModel):
@@ -13,8 +13,8 @@ class RunConfig(BaseModel):
     model: str
     dataset: str
     prompt: str = "base"
-    layer: Literal[1, 2] = 2
-    mode: Literal["guided", "open"] = "guided"
+    layer: EvalLayer = EvalLayer.TOOL_USE
+    mode: str = "guided"
     max_turns: int = Field(default=200, ge=1)
     max_cost: float | None = None
     workers: int = Field(default=5, ge=1)

@@ -17,7 +17,7 @@ def build_prompt(
     task: Task,
     preset_name: str = "base",
     mode: str = "guided",
-    layer: int = 2,
+    layer: int | str = 2,
     code_block: str | None = None,
 ) -> list[Message]:
     """Build prompt messages from a YAML preset and task data.
@@ -26,7 +26,8 @@ def build_prompt(
         task: The evaluation task.
         preset_name: Name of built-in preset or path to custom YAML.
         mode: ``"guided"`` (with category hint) or ``"open"`` (no hint).
-        layer: 1 (code in prompt) or 2 (tool-use).
+        layer: Layer number (1/2) or EvalLayer enum. Used to select
+            ``user_l1`` / ``user_l2`` template keys.
         code_block: Function source code (Layer 1) or ``None`` (Layer 2).
 
     Returns:
@@ -35,7 +36,9 @@ def build_prompt(
     preset = _load_preset(preset_name)
     template_vars = _build_template_vars(task, mode, code_block or "")
 
-    user_key = f"user_l{layer}" if f"user_l{layer}" in preset else "user"
+    # Support both EvalLayer enum (has .layer_number) and raw int
+    layer_num = getattr(layer, "layer_number", layer)
+    user_key = f"user_l{layer_num}" if f"user_l{layer_num}" in preset else "user"
 
     system_content = preset["system"].format(**template_vars)
     user_content = preset[user_key].format(**template_vars)

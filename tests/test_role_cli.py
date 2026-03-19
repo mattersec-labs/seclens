@@ -29,7 +29,7 @@ def _make_result(model: str = "test/model", verdict: int = 1) -> TaskResult:
         ground_truth_cwe="CWE-89",
         task_severity="high",
         run_metadata=RunMetadata(
-            model=model, prompt="base", layer=1, mode="guided",
+            model=model, prompt="base", layer="code-in-prompt", mode="guided",
             timestamp="2026-01-01T00:00:00Z", seclens_version="0.1.0", seed=42,
         ),
         parse_result=ParseResult(
@@ -86,7 +86,7 @@ def second_results_file(tmp_path: Path) -> Path:
             ground_truth_cwe=None,
             task_severity=None,
             run_metadata=RunMetadata(
-                model="other/model", prompt="base", layer=1, mode="guided",
+                model="other/model", prompt="base", layer="code-in-prompt", mode="guided",
                 timestamp="2026-01-01T00:00:00Z", seclens_version="0.1.0", seed=42,
             ),
             parse_result=ParseResult(
