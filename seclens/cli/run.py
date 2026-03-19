@@ -486,14 +486,24 @@ def _run_report(output_path: Path) -> None:
         return
 
     run_metadata = results[0].run_metadata
-    report = compute_aggregate(results, run_metadata)
-    _print_terminal_report(report)
+    agg_report = compute_aggregate(results, run_metadata)
+    _print_terminal_report(agg_report)
+
+    # Generate model report JSON
+    from seclens.scoring.model_report import generate_model_report
+
+    model_report = generate_model_report(results, run_metadata, dataset=config.dataset)
+    report_path = output_path.with_suffix(".json").with_name(
+        output_path.stem.replace("results_", "report_") + ".json"
+    )
+    report_path.write_text(model_report.model_dump_json(indent=2))
+    console.print(f"\n[green]Model report saved to {report_path}[/green]")
 
     # Post-run hints
     console.print()
     console.print("[bold]Next steps:[/bold]")
-    console.print(f"  seclens summary -r {output_path}")
-    console.print(f"  seclens report -r {output_path} --role ciso")
+    console.print(f"  seclens summary -r {report_path}")
+    console.print(f"  seclens report -r {report_path} --role ciso")
     console.print()
 
 

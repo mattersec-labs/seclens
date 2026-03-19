@@ -2,33 +2,42 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Annotated, Optional
 
 import typer
 from rich.console import Console
 
-from seclens.results.io import read_results
-from seclens.scoring.aggregate import compute_aggregate
+from seclens.schemas.model_report import ModelReport
 
 console = Console()
 
 
+def _load_report(path: Path) -> ModelReport:
+    """Load a model report from JSON or generate from results JSONL."""
+    if path.suffix == ".json":
+        return ModelReport.model_validate_json(path.read_text())
+
+    # Legacy: generate from results JSONL
+    from seclens.results.io import read_results
+    from seclens.scoring.model_report import generate_model_report
+
+    results = read_results(path)
+    if not results:
+        console.print("[yellow]No results found in file.[/yellow]")
+        raise typer.Exit(code=1)
+    return generate_model_report(results, results[0].run_metadata)
+
+
 def summary_command(
-    run: Annotated[Path, typer.Option("--run", "-r", help="Path to results JSONL file")],
+    run: Annotated[Path, typer.Option("--run", "-r", help="Path to report JSON or results JSONL file")],
     output: Annotated[Optional[Path], typer.Option(
         "--out", "-o", help="Output path (.json for JSON, omit for terminal)",
     )] = None,
 ) -> None:
     """Show aggregate metrics from a single evaluation run."""
-    results = read_results(run)
-
-    if not results:
-        console.print("[yellow]No results found in file.[/yellow]")
-        raise typer.Exit(code=1)
-
-    run_metadata = results[0].run_metadata
-    report = compute_aggregate(results, run_metadata)
+    report = _load_report(run)
 
     if output is not None and output.suffix == ".json":
         output.write_text(report.model_dump_json(indent=2))
@@ -37,7 +46,7 @@ def summary_command(
         _print_terminal_report(report)
 
 
-def _print_terminal_report(report) -> None:  # noqa: ANN001
+def _print_terminal_report(report: ModelReport) -> None:
     """Print the aggregate report to the terminal using Rich."""
     from rich.table import Table
 
@@ -88,5 +97,5 @@ def _print_terminal_report(report) -> None:  # noqa: ANN001
 
     # Summary
     console.print()
-    console.print(f"[bold]Total:[/bold] {report.task_count} tasks | "
+    console.print(f"[bold]Total:[/bold] {report.total_tasks} tasks | "
                   f"{report.errors} errors | {report.parse_failures} parse failures")

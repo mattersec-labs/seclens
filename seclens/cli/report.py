@@ -10,18 +10,35 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from seclens.results.io import read_results
 from seclens.roles.scorer import generate_multi_role_report, generate_role_report
 from seclens.roles.weights import list_roles
 from seclens.schemas.role_report import MultiRoleReport, RoleReport
 
 console = Console()
 
+
+def _load_results(path: Path) -> list:
+    """Load TaskResults from a report JSON (via JSONL fallback) or results JSONL."""
+    if path.suffix == ".json":
+        # Model report JSON — need to load the original results JSONL
+        # Look for the corresponding results file
+        results_name = path.name.replace("report_", "results_").replace(".json", ".jsonl")
+        results_path = path.parent / results_name
+        if results_path.exists():
+            from seclens.results.io import read_results
+            return read_results(results_path)
+        # Fallback: can't find results file
+        console.print(f"[yellow]Cannot find results JSONL for {path.name}. Looking for {results_name}[/yellow]")
+        raise typer.Exit(code=1)
+    else:
+        from seclens.results.io import read_results
+        return read_results(path)
+
 _GRADE_COLORS = {"A": "green", "B": "blue", "C": "yellow", "D": "dark_orange", "F": "red"}
 
 
 def report_command(
-    run: Annotated[Path, typer.Option("--run", "-r", help="Path to results JSONL file")],
+    run: Annotated[Path, typer.Option("--run", "-r", help="Path to report JSON or results JSONL")],
     role: Annotated[
         Optional[str],
         typer.Option("--role", help=f"Role name ({', '.join(list_roles())})"),
@@ -45,9 +62,9 @@ def report_command(
         console.print("[red]Cannot use both --role and --all-roles.[/red]")
         raise typer.Exit(code=1)
 
-    results = read_results(run)
+    results = _load_results(run)
     if not results:
-        console.print("[yellow]No results found in file.[/yellow]")
+        console.print("[yellow]No results found.[/yellow]")
         raise typer.Exit(code=1)
 
     if all_roles:

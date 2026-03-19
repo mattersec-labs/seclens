@@ -10,7 +10,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from seclens.results.io import read_results
 from seclens.roles.scorer import generate_multi_role_report, generate_role_report
 from seclens.roles.weights import list_roles
 
@@ -52,9 +51,20 @@ def compare_command(
         raise typer.Exit(code=1)
 
     # Load all result files
+    def _load(path: Path) -> list:
+        if path.suffix == ".json":
+            results_name = path.name.replace("report_", "results_").replace(".json", ".jsonl")
+            results_path = path.parent / results_name
+            if results_path.exists():
+                from seclens.results.io import read_results
+                return read_results(results_path)
+            return []
+        from seclens.results.io import read_results
+        return read_results(path)
+
     model_results: list[tuple[str, list]] = []
     for run_path in runs:
-        results = read_results(run_path)
+        results = _load(run_path)
         if not results:
             console.print(f"[yellow]Skipping empty file: {run_path}[/yellow]")
             continue
