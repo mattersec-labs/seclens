@@ -1,0 +1,25 @@
+role: head_of_engineering
+name: "Head of Engineering"
+description: "Will this model help or hurt my team's velocity and code quality?"
+version: "1.0"
+
+dimensions:
+  D2:  { weight: 5,  name: "Recall" }
+  D3:  { weight: 12, name: "Precision" }
+  D7:  { weight: 8,  name: "Mean Location IoU" }
+  D8:  { weight: 10, name: "Actionable Finding Rate" }
+  D12: { weight: 3,  name: "Worst Language Floor" }
+  D13: { weight: 4,  name: "SAST FP Filtering" }
+  D18: { weight: 7,  name: "Cost per Task" }
+  D21: { weight: 7,  name: "Wall Time per Task" }
+  D22: { weight: 5,  name: "Throughput" }
+  D23: { weight: 3,  name: "Tokens per Task" }
+  D31: { weight: 7,  name: "Parse Success Rate" }
+  D32: { weight: 3,  name: "Format Compliance" }
+  D33: { weight: 6,  name: "Error Rate" }
+
+categories:
+  Detection: [D2, D3, D7, D8]
+  Coverage: [D12, D13]
+  Efficiency: [D18, D21, D22, D23]
+  Robustness: [D31, D32, D33]

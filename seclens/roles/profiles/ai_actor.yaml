@@ -1,0 +1,26 @@
+role: ai_actor
+name: "AI as Actor"
+description: "Does the agent know what it can and can't do?"
+version: "1.0"
+
+dimensions:
+  D1:  { weight: 10, name: "MCC" }
+  D4:  { weight: 7,  name: "F1" }
+  D9:  { weight: 3,  name: "CWE Coverage Breadth" }
+  D11: { weight: 4,  name: "Cross-Language Consistency" }
+  D14: { weight: 2,  name: "Evidence Completeness" }
+  D25: { weight: 5,  name: "Turns per Task" }
+  D26: { weight: 5,  name: "Navigation Efficiency" }
+  D27: { weight: 8,  name: "Tool Effectiveness" }
+  D31: { weight: 3,  name: "Parse Success Rate" }
+  D32: { weight: 6,  name: "Format Compliance" }
+  D33: { weight: 6,  name: "Error Rate" }
+  D34: { weight: 12, name: "Autonomous Completion" }
+  D35: { weight: 9,  name: "Graceful Degradation" }
+
+categories:
+  Detection: [D1, D4]
+  Coverage: [D9, D11]
+  Reasoning: [D14]
+  "Tool-Use": [D25, D26, D27]
+  Robustness: [D31, D32, D33, D34, D35]

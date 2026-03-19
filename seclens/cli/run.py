@@ -469,12 +469,12 @@ def _print_run_summary(
 
 
 def _run_report(output_path: Path) -> None:
-    """Auto-generate and display the aggregate report."""
-    from seclens.cli.report import _print_terminal_report
+    """Auto-generate aggregate summary and show next-step hints."""
+    from seclens.cli.summary import _print_terminal_report
     from seclens.scoring.aggregate import compute_aggregate
 
     console.print()
-    console.print("[bold]Generating report...[/bold]")
+    console.print("[bold]Generating summary...[/bold]")
 
     results = read_results(output_path)
     if not results:
@@ -483,6 +483,13 @@ def _run_report(output_path: Path) -> None:
     run_metadata = results[0].run_metadata
     report = compute_aggregate(results, run_metadata)
     _print_terminal_report(report)
+
+    # Post-run hints
+    console.print()
+    console.print("[bold]Next steps:[/bold]")
+    console.print(f"  seclens summary -r {output_path}")
+    console.print(f"  seclens report -r {output_path} --role ciso")
+    console.print()
 
 
 # ---------------------------------------------------------------------------

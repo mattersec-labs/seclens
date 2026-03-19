@@ -171,7 +171,7 @@ class TestRunCommand:
         assert "All tasks already completed" in result.output
 
 
-class TestReportCommand:
+class TestSummaryCommand:
     def test_json_output(self, tmp_path: Path) -> None:
         from seclens.results.io import write_result
 
@@ -182,7 +182,7 @@ class TestReportCommand:
 
         json_output = tmp_path / "report.json"
         result = runner.invoke(app, [
-            "report",
+            "summary",
             "--run", str(results_path),
             "--out", str(json_output),
         ])
@@ -199,7 +199,7 @@ class TestReportCommand:
             write_result(results_path, _make_result(f"t{i}", task_type=task_type))
 
         result = runner.invoke(app, [
-            "report",
+            "summary",
             "--run", str(results_path),
         ])
         assert result.exit_code == 0
@@ -209,7 +209,7 @@ class TestReportCommand:
         results_path = tmp_path / "results.jsonl"
         results_path.write_text("")
         result = runner.invoke(app, [
-            "report",
+            "summary",
             "--run", str(results_path),
         ])
         assert result.exit_code == 1
@@ -231,9 +231,10 @@ class TestCompareCommand:
             "compare",
             "--run", str(run1),
             "--run", str(run2),
+            "--role", "ciso",
         ])
         assert result.exit_code == 0
-        assert "Run Comparison" in result.output
+        assert "Comparison" in result.output
 
     def test_compare_needs_two(self, tmp_path: Path) -> None:
         from seclens.results.io import write_result
@@ -244,5 +245,6 @@ class TestCompareCommand:
         result = runner.invoke(app, [
             "compare",
             "--run", str(run1),
+            "--role", "ciso",
         ])
         assert result.exit_code == 1

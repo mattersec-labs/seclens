@@ -1,0 +1,30 @@
+role: ciso
+name: "Chief Information Security Officer"
+description: "Can I trust this model in my security program?"
+version: "1.0"
+
+dimensions:
+  D1:  { weight: 10, name: "MCC" }
+  D2:  { weight: 8,  name: "Recall" }
+  D3:  { weight: 6,  name: "Precision" }
+  D6:  { weight: 5,  name: "CWE Accuracy" }
+  D8:  { weight: 5,  name: "Actionable Finding Rate" }
+  D9:  { weight: 4,  name: "CWE Coverage Breadth" }
+  D10: { weight: 6,  name: "Worst Category Floor" }
+  D11: { weight: 3,  name: "Cross-Language Consistency" }
+  D13: { weight: 2,  name: "SAST FP Filtering" }
+  D14: { weight: 4,  name: "Evidence Completeness" }
+  D18: { weight: 2,  name: "Cost per Task" }
+  D28: { weight: 10, name: "Severity-Weighted Recall" }
+  D29: { weight: 8,  name: "Critical Miss Rate" }
+  D33: { weight: 3,  name: "Error Rate" }
+  D34: { weight: 3,  name: "Autonomous Completion" }
+  D35: { weight: 1,  name: "Graceful Degradation" }
+
+categories:
+  Detection: [D1, D2, D3, D6, D8]
+  Coverage: [D9, D10, D11, D13]
+  Reasoning: [D14]
+  Efficiency: [D18]
+  "Risk & Severity": [D28, D29]
+  Robustness: [D33, D34, D35]

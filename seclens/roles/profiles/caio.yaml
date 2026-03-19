@@ -1,0 +1,29 @@
+role: caio
+name: "Chief AI Officer"
+description: "Which model unlocks new capabilities while balancing risk and cost?"
+version: "1.0"
+
+dimensions:
+  D1:  { weight: 9,  name: "MCC" }
+  D4:  { weight: 7,  name: "F1" }
+  D9:  { weight: 4,  name: "CWE Coverage Breadth" }
+  D15: { weight: 1,  name: "Reasoning Presence" }
+  D18: { weight: 5,  name: "Cost per Task" }
+  D20: { weight: 8,  name: "MCC per Dollar" }
+  D22: { weight: 6,  name: "Throughput" }
+  D25: { weight: 5,  name: "Turns per Task" }
+  D26: { weight: 3,  name: "Navigation Efficiency" }
+  D27: { weight: 7,  name: "Tool Effectiveness" }
+  D30: { weight: 5,  name: "Severity Coverage" }
+  D31: { weight: 4,  name: "Parse Success Rate" }
+  D32: { weight: 6,  name: "Format Compliance" }
+  D34: { weight: 10, name: "Autonomous Completion" }
+
+categories:
+  Detection: [D1, D4]
+  Coverage: [D9]
+  Reasoning: [D15]
+  Efficiency: [D18, D20, D22]
+  "Tool-Use": [D25, D26, D27]
+  "Risk & Severity": [D30]
+  Robustness: [D31, D32, D34]
