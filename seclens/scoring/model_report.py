@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import math
+from collections.abc import Callable
+
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -66,7 +67,7 @@ def generate_model_report(
 
 def _compute_group_breakdowns(
     results: list[TaskResult],
-    key_fn: callable,
+    key_fn: Callable,
 ) -> dict[str, GroupBreakdown]:
     """Compute per-group breakdowns with full metric set."""
     groups: dict[str, list[TaskResult]] = defaultdict(list)

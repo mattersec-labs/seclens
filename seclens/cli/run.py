@@ -367,11 +367,11 @@ def run_command(
             console.print("[dim]Done.[/dim]")
 
     # Summary
-    _print_run_summary(results, output_path, interrupted)
+    _print_run_summary(results, interrupted)
 
     # Auto-generate report if evaluation completed successfully
     if results and not interrupted:
-        _run_report(output_path)
+        _run_report(output_path, config)
 
     # Force-exit on interrupt — ThreadPoolExecutor worker threads may still be
     # blocked on LLM API calls with long timeouts.  Normal shutdown would hang
@@ -435,7 +435,6 @@ _config_panel_width: int = 0
 
 def _print_run_summary(
     results: list,
-    output_path: Path,
     interrupted: bool,
 ) -> None:
     """Print compact summary panel after evaluation."""
@@ -473,9 +472,8 @@ def _print_run_summary(
     )
 
 
-def _run_report(output_path: Path) -> None:
+def _run_report(output_path: Path, config: RunConfig) -> None:
     """Auto-generate aggregate summary and show next-step hints."""
-    from seclens.cli.summary import _print_terminal_report
     from seclens.scoring.aggregate import compute_aggregate
 
     console.print()
@@ -487,23 +485,30 @@ def _run_report(output_path: Path) -> None:
 
     run_metadata = results[0].run_metadata
     agg_report = compute_aggregate(results, run_metadata)
-    _print_terminal_report(agg_report)
+
+    ls = agg_report.leaderboard_score
+    console.print()
+    console.print(f"  [bold]Score:[/bold] {ls.mean * 100:.2f}% "
+                  f"(95% CI: [{ls.ci_lower * 100:.2f}%, {ls.ci_upper * 100:.2f}%])")
+    console.print(f"  [bold]MCC:[/bold] {agg_report.core.verdict_mcc.mean:.4f}  "
+                  f"[bold]Cost:[/bold] ${agg_report.cost.total_cost_usd:.4f}")
 
     # Generate model report JSON
     from seclens.scoring.model_report import generate_model_report
 
     model_report = generate_model_report(results, run_metadata, dataset=config.dataset)
-    report_path = output_path.with_suffix(".json").with_name(
-        output_path.stem.replace("results_", "report_") + ".json"
-    )
+    report_path = output_path.parent / output_path.name.replace("results_", "report_").replace(".jsonl", ".json")
     report_path.write_text(model_report.model_dump_json(indent=2))
     console.print(f"\n[green]Model report saved to {report_path}[/green]")
 
     # Post-run hints
+    from seclens.roles.weights import list_roles
+
     console.print()
-    console.print("[bold]Next steps:[/bold]")
-    console.print(f"  seclens summary -r {report_path}")
-    console.print(f"  seclens report -r {report_path} --role ciso")
+    console.print("[bold]Generate role reports:[/bold]")
+    for role in list_roles():
+        console.print(f"  [dim]seclens report -r {report_path} --role {role}[/dim]")
+    console.print(f"  [dim]seclens report -r {report_path} --all-roles[/dim]")
     console.print()
 
 

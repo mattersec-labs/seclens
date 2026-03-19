@@ -127,7 +127,7 @@ def _compare_single_role(
     console.print()
     console.print(Panel(
         table,
-        title=f"[bold]{report.role_name} Comparison[/bold]",
+        title=f"[bold]{reports[0].role_name} Comparison[/bold]",
         border_style="blue",
     ))
     console.print()

@@ -10,6 +10,7 @@ import yaml
 from engine_harness import Message, Role
 
 from seclens.schemas.output import ParsedOutput
+from seclens.schemas.task import EvalLayer
 from seclens.schemas.task import Task
 
 
@@ -17,7 +18,7 @@ def build_prompt(
     task: Task,
     preset_name: str = "base",
     mode: str = "guided",
-    layer: int | str = 2,
+    layer: EvalLayer | int = EvalLayer.TOOL_USE,
     code_block: str | None = None,
 ) -> list[Message]:
     """Build prompt messages from a YAML preset and task data.

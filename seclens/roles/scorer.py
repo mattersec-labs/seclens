@@ -128,7 +128,7 @@ def generate_role_report(
     role: str,
     *,
     model: str | None = None,
-    layer: int | None = None,
+    layer: EvalLayer | None = None,
 ) -> RoleReport:
     """Generate a complete role-specific report from evaluation results.
 
@@ -208,7 +208,7 @@ def generate_multi_role_report(
     roles: list[str] | None = None,
     *,
     model: str | None = None,
-    layer: int | None = None,
+    layer: EvalLayer | None = None,
 ) -> MultiRoleReport:
     """Generate reports for all roles (or a subset) from the same results.
 

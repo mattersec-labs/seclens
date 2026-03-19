@@ -89,7 +89,7 @@ def main() -> None:
         status = f"migrated {migrated}/{total} entries" if migrated > 0 else "already current"
         print(f"  {path.name}: {status}")
 
-        new_path = rename_file(path if not dry_run else path, dry_run)
+        new_path = rename_file(path, dry_run)
         if new_path:
             print(f"    renamed → {new_path.name}")
 

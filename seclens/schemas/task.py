@@ -97,6 +97,9 @@ class TaskMetadata(BaseModel):
 
     disclosure_date: str | None = None
     cve_id: str | None = None
+    paired_with: str | None = None
+    sast_rule: str | None = None
+    sast_tool: str | None = None
 
     @field_validator("disclosure_date", mode="before")
     @classmethod
@@ -104,9 +107,6 @@ class TaskMetadata(BaseModel):
         if isinstance(v, datetime):
             return v.strftime("%Y-%m-%d")
         return v
-    paired_with: str | None = None
-    sast_rule: str | None = None
-    sast_tool: str | None = None
 
 
 class Task(BaseModel):

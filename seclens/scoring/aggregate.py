@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import math
 
 import numpy as np
@@ -121,7 +123,7 @@ def _compute_cost_metrics(
 
 def _compute_breakdowns(
     results: list[TaskResult],
-    key_fn: callable,
+    key_fn: Callable,
     seed: int,
 ) -> dict[str, CoreMetrics]:
     """Compute per-group core metrics."""
@@ -136,7 +138,7 @@ def _compute_breakdowns(
 def _bootstrap_ci(
     values: list,
     weights: list | None,
-    metric_fn: callable,
+    metric_fn: Callable,
     seed: int,
     n_iterations: int = 1000,
 ) -> ConfidenceInterval:
