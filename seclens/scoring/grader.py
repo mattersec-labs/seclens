@@ -37,7 +37,13 @@ def score_task(
         # Negative task: only verdict matters
         return TaskScore(verdict=verdict, cwe=0, location=0.0, earned=float(verdict), max_task_points=1)
 
-    # Positive task: score all three dimensions
+    if max_task_points == 2:
+        # CIP positive task: verdict + CWE only (no location in code-in-prompt mode)
+        cwe = _score_cwe(parsed, ground_truth)
+        earned = round(float(verdict + cwe), 2)
+        return TaskScore(verdict=verdict, cwe=cwe, location=0.0, earned=earned, max_task_points=2)
+
+    # Tool-use positive task: score all three dimensions
     cwe = _score_cwe(parsed, ground_truth)
     location = round(_score_location(parsed, ground_truth, recall_threshold=recall_threshold), 2)
     earned = round(verdict + cwe + location, 2)

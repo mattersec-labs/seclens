@@ -57,6 +57,15 @@ def migrate_jsonl(path: Path, dry_run: bool = False) -> tuple[int, int]:
                 data["task_category"] = paired_cat
                 migrated += 1
 
+        # CIP: positive tasks should have max_task_points=2 (no location scoring)
+        layer_val = meta.get("layer")
+        scores = data.get("scores", {})
+        if layer_val in (1, "code-in-prompt") and scores.get("max_task_points") == 3:
+            scores["max_task_points"] = 2
+            scores["location"] = 0.0
+            scores["earned"] = round(scores.get("verdict", 0) + scores.get("cwe", 0), 2)
+            migrated += 1
+
         new_lines.append(json.dumps(data, separators=(",", ":")))
 
     if not dry_run and migrated > 0:

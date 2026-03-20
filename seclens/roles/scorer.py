@@ -27,6 +27,7 @@ from seclens.schemas.task import EvalLayer, TaskType
 
 _SEVERITY_DIMS = {"D28", "D29", "D30"}
 _TOOL_DIMS = {"D24", "D25", "D26", "D27"}
+_LOCATION_DIMS = {"D7", "D8"}
 _SAST_FP_DIMS = {"D13"}
 
 
@@ -39,6 +40,10 @@ def _unavailable_dimensions(results: list[TaskResult]) -> set[str]:
 
     if not any(r.metrics.tool_calls > 0 for r in results if r.error is None):
         excluded |= _TOOL_DIMS
+
+    # CIP: location scoring not possible (no file path/absolute lines in prompt)
+    if results and results[0].run_metadata.layer == EvalLayer.CODE_IN_PROMPT:
+        excluded |= _LOCATION_DIMS
 
     if not any(r.task_type == TaskType.SAST_FALSE_POSITIVE for r in results):
         excluded |= _SAST_FP_DIMS
@@ -187,6 +192,16 @@ def generate_role_report(
     detected_model = model or (results[0].run_metadata.model if results else "unknown")
     detected_layer = layer or (results[0].run_metadata.layer if results else EvalLayer.CODE_IN_PROMPT)
 
+    # Layer note for CIP
+    layer_note = None
+    if detected_layer == EvalLayer.CODE_IN_PROMPT:
+        available_weight = sum(d.weight for d in dimension_scores)
+        layer_note = (
+            f"Code-in-Prompt evaluation ({available_weight:.0f}/{profile.total_weight:.0f} dimensions scored). "
+            "Location precision and tool-use dimensions not measured. "
+            "Run with --layer tool-use for full coverage."
+        )
+
     return RoleReport(
         role=role,
         role_name=profile.name,
@@ -200,6 +215,7 @@ def generate_role_report(
         total_tasks=len(results),
         recommendation=recommendation,
         excluded_dimensions=sorted(excluded & set(profile.dimensions)),
+        layer_note=layer_note,
     )
 
 

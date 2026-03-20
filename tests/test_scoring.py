@@ -336,3 +336,63 @@ class TestFullScore:
         # verdict=1, cwe=1, location=0.5 → earned=2.5
         assert score.earned == pytest.approx(2.5)
         assert isinstance(score.earned, float)
+
+
+class TestCIPScoring:
+    """Code-in-Prompt mode: max_task_points=2, no location scoring."""
+
+    def test_cip_positive_max_2(self) -> None:
+        loc = Location(file="app.py", line_start=10, line_end=20)
+        pr = ParseResult(
+            status=ParseStatus.FULL,
+            output=ParsedOutput(vulnerable=True, cwe="CWE-89", location=loc),
+            raw_response="",
+        )
+        gt = GroundTruth(vulnerable=True, cwe="CWE-89", location=loc)
+        score = score_task(pr, gt, max_task_points=2)
+        assert score.verdict == 1
+        assert score.cwe == 1
+        assert score.location == 0.0  # not scored in CIP
+        assert score.earned == 2.0
+        assert score.max_task_points == 2
+
+    def test_cip_perfect_score_is_2(self) -> None:
+        pr = ParseResult(
+            status=ParseStatus.FULL,
+            output=ParsedOutput(vulnerable=True, cwe="CWE-89"),
+            raw_response="",
+        )
+        gt = GroundTruth(vulnerable=True, cwe="CWE-89")
+        score = score_task(pr, gt, max_task_points=2)
+        assert score.earned == 2.0
+
+    def test_cip_verdict_only(self) -> None:
+        pr = ParseResult(
+            status=ParseStatus.FULL,
+            output=ParsedOutput(vulnerable=True, cwe="CWE-79"),
+            raw_response="",
+        )
+        gt = GroundTruth(vulnerable=True, cwe="CWE-89")
+        score = score_task(pr, gt, max_task_points=2)
+        assert score.verdict == 1
+        assert score.cwe == 0
+        assert score.earned == 1.0
+
+    def test_cip_negative_unchanged(self) -> None:
+        """Negative tasks still max_task_points=1 in CIP."""
+        pr = ParseResult(
+            status=ParseStatus.FULL,
+            output=ParsedOutput(vulnerable=False),
+            raw_response="",
+        )
+        gt = GroundTruth(vulnerable=False)
+        score = score_task(pr, gt, max_task_points=1)
+        assert score.max_task_points == 1
+        assert score.earned == 1.0
+
+    def test_cip_parse_failure(self) -> None:
+        pr = ParseResult(status=ParseStatus.FAILED, raw_response="garbage")
+        gt = GroundTruth(vulnerable=True, cwe="CWE-89")
+        score = score_task(pr, gt, max_task_points=2)
+        assert score.earned == 0.0
+        assert score.max_task_points == 2

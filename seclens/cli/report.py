@@ -205,8 +205,14 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
     if report.excluded_dimensions:
         from seclens.roles.dimensions import DIMENSION_NAMES
         excluded_names = [DIMENSION_NAMES.get(d, d) for d in report.excluded_dimensions]
+        label = "Not applicable (Code-in-Prompt)" if report.layer_note else "Excluded (no data)"
         console.print()
-        console.print(f"[dim]Excluded dimensions (no data): {', '.join(excluded_names)}[/dim]")
+        console.print(f"[dim]{label}: {', '.join(excluded_names)}[/dim]")
+
+    # Layer note
+    if report.layer_note:
+        console.print()
+        console.print(f"[dim italic]{report.layer_note}[/dim italic]")
 
     # Recommendation
     console.print()

@@ -167,17 +167,19 @@ class TestBuildRunMetadata:
 class TestErrorResult:
     def test_all_zeros(self, positive_task: Task, config: RunConfig) -> None:
         meta = _build_run_metadata(config)
-        result = _error_result(positive_task, meta, "test error")
+        result = _error_result(positive_task, meta, config.layer, "test error")
         assert result.error == "test error"
         assert result.scores.verdict == 0
         assert result.scores.cwe == 0
         assert result.scores.location == 0
         assert result.scores.earned == 0
         assert result.parse_result.status == ParseStatus.FAILED
+        # CIP: positive tasks get max_task_points=2
+        assert result.scores.max_task_points == 2
 
     def test_negative_task_error(self, negative_task: Task, config: RunConfig) -> None:
         meta = _build_run_metadata(config)
-        result = _error_result(negative_task, meta, "timeout")
+        result = _error_result(negative_task, meta, config.layer, "timeout")
         assert result.scores.max_task_points == 1
         assert result.task_type == TaskType.POST_PATCH
 
@@ -217,8 +219,9 @@ class TestEvaluateTaskLayer1:
         assert result.task_id == "test-pos-001"
         assert result.scores.verdict == 1
         assert result.scores.cwe == 1
-        assert result.scores.location == 1
-        assert result.scores.earned == 3
+        assert result.scores.location == 0.0  # CIP: no location scoring
+        assert result.scores.earned == 2.0    # CIP: max 2 points
+        assert result.scores.max_task_points == 2
         assert result.error is None
         mock_fetch.assert_called_once()
         mock_runner_cls.assert_called_once()

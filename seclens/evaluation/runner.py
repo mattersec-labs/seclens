@@ -94,7 +94,7 @@ def evaluate_task(
         return _evaluate_layer2(task, adapter, config, run_metadata, sandbox_manager)
     except Exception as exc:  # noqa: BLE001
         return EvalOutput(
-            result=_error_result(task, run_metadata, f"{type(exc).__name__}: {exc}"),
+            result=_error_result(task, run_metadata, config.layer, f"{type(exc).__name__}: {exc}"),
         )
 
 
@@ -121,8 +121,10 @@ def _evaluate_layer1(
     loop_result = runner.run(messages)
 
     parse_result = parse_response(loop_result.final_response.content or "")
+    # CIP: no location scoring — max 2 points for positive tasks
+    cip_max_points = 2 if task.max_task_points == 3 else task.max_task_points
     scores = score_task(
-        parse_result, task.ground_truth, task.max_task_points,
+        parse_result, task.ground_truth, cip_max_points,
         recall_threshold=config.location_recall_threshold,
     )
     metrics = _build_metrics(loop_result, cost_tracker)
@@ -239,8 +241,12 @@ def _build_metrics(
     )
 
 
-def _error_result(task: Task, run_metadata: RunMetadata, error: str) -> TaskResult:
+def _error_result(task: Task, run_metadata: RunMetadata, layer: EvalLayer, error: str) -> TaskResult:
     """Build a TaskResult for a failed evaluation — all scores zero."""
+    # CIP: positive tasks max 2 points (no location)
+    max_pts = task.max_task_points
+    if layer == EvalLayer.CODE_IN_PROMPT and max_pts == 3:
+        max_pts = 2
     return TaskResult(
         task_id=task.id,
         task_type=task.type,
@@ -253,7 +259,7 @@ def _error_result(task: Task, run_metadata: RunMetadata, error: str) -> TaskResu
         parse_result=ParseResult(status=ParseStatus.FAILED, raw_response=""),
         scores=TaskScore(
             verdict=0, cwe=0, location=0.0, earned=0.0,
-            max_task_points=task.max_task_points,
+            max_task_points=max_pts,
         ),
         error=error,
     )

@@ -43,6 +43,7 @@ class RoleReport(BaseModel):
     total_tasks: int
     recommendation: str
     excluded_dimensions: list[str] = []
+    layer_note: str | None = None
 
 
 class MultiRoleReport(BaseModel):
