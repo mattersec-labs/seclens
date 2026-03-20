@@ -27,17 +27,29 @@ def migrate_jsonl(path: Path, dry_run: bool = False) -> tuple[int, int]:
     # First pass: build category lookup from positive tasks
     category_lookup: dict[str, str] = {}
     for line in lines:
-        data = json.loads(line)
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            continue
         if data.get("task_type") == "true_positive" and data.get("task_category"):
             category_lookup[data["task_id"]] = data["task_category"]
 
     for line in lines:
-        data = json.loads(line)
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            new_lines.append(line)  # keep corrupt lines as-is
+            continue
         meta = data.get("run_metadata", {})
         layer = meta.get("layer")
 
         if isinstance(layer, int) and layer in LAYER_MAP:
             meta["layer"] = LAYER_MAP[layer]
+            migrated += 1
+
+        # Rename lmsecbench_version → seclens_version
+        if "lmsecbench_version" in meta and "seclens_version" not in meta:
+            meta["seclens_version"] = meta.pop("lmsecbench_version")
             migrated += 1
 
         # Add paired_with field if missing

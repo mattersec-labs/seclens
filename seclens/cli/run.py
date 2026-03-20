@@ -420,6 +420,11 @@ def run_command(
         removed = deduplicate_results(output_path)
         if removed:
             console.print(f"[dim]Deduplicated {removed} old entries from {output_path.name}[/dim]")
+        # Dedup debug file too (same task_id based dedup)
+        if debug_path and debug_path.exists():
+            debug_removed = deduplicate_debug(debug_path)
+            if debug_removed:
+                console.print(f"[dim]Deduplicated {debug_removed} old entries from {debug_path.name}[/dim]")
 
     # Summary
     _print_run_summary(results, interrupted)
@@ -618,3 +623,33 @@ def _write_debug(path: Path, task_id: str, messages: list) -> None:
         with open(path, "a") as f:
             f.write(line + "\n")
             f.flush()
+
+
+def deduplicate_debug(path: Path) -> int:
+    """Remove duplicate task_ids from debug JSONL, keeping the last occurrence.
+
+    Also removes corrupt/unparseable lines. Returns count of lines removed.
+    """
+    import json
+
+    with _debug_write_lock:
+        lines = path.read_text().strip().splitlines()
+        seen: dict[str, str] = {}
+        for line in lines:
+            if not line.strip():
+                continue
+            try:
+                data = json.loads(line)
+                task_id = data.get("task_id")
+                if task_id is not None:
+                    seen[task_id] = line
+            except json.JSONDecodeError:
+                continue  # drop corrupt debug lines
+
+        deduped = list(seen.values())
+        removed = len(lines) - len(deduped)
+
+        if removed > 0:
+            path.write_text("\n".join(deduped) + "\n")
+
+        return removed
