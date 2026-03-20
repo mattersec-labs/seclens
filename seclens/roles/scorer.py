@@ -31,22 +31,28 @@ _LOCATION_DIMS = {"D7", "D8"}
 _SAST_FP_DIMS = {"D13"}
 
 
-def _unavailable_dimensions(results: list[TaskResult]) -> set[str]:
-    """Determine which dimensions lack data and should be excluded."""
-    excluded: set[str] = set()
+def _unavailable_dimensions(results: list[TaskResult]) -> dict[str, str]:
+    """Determine which dimensions lack data and why.
+
+    Returns dict mapping dimension ID to exclusion reason.
+    """
+    excluded: dict[str, str] = {}
 
     if not any(r.task_severity for r in results):
-        excluded |= _SEVERITY_DIMS
+        for d in _SEVERITY_DIMS:
+            excluded[d] = "no severity data"
 
     if not any(r.metrics.tool_calls > 0 for r in results if r.error is None):
-        excluded |= _TOOL_DIMS
+        for d in _TOOL_DIMS:
+            excluded[d] = "Code-in-Prompt"
 
-    # CIP: location scoring not possible (no file path/absolute lines in prompt)
     if results and results[0].run_metadata.layer == EvalLayer.CODE_IN_PROMPT:
-        excluded |= _LOCATION_DIMS
+        for d in _LOCATION_DIMS:
+            excluded[d] = "Code-in-Prompt"
 
     if not any(r.task_type == TaskType.SAST_FALSE_POSITIVE for r in results):
-        excluded |= _SAST_FP_DIMS
+        for d in _SAST_FP_DIMS:
+            excluded[d] = "no SAST FP tasks"
 
     return excluded
 
@@ -214,7 +220,8 @@ def generate_role_report(
         layer=detected_layer,
         total_tasks=len(results),
         recommendation=recommendation,
-        excluded_dimensions=sorted(excluded & set(profile.dimensions)),
+        excluded_dimensions=sorted(set(excluded) & set(profile.dimensions)),
+        excluded_reasons={d: excluded[d] for d in sorted(set(excluded) & set(profile.dimensions))},
         layer_note=layer_note,
     )
 

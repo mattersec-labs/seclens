@@ -201,13 +201,18 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
                       "[bold]IoU:[/bold] location precision | "
                       "[bold]Actionable:[/bold] complete findings (verdict + CWE + location)[/dim]")
 
-    # Excluded dimensions — show human-readable names
-    if report.excluded_dimensions:
+    # Excluded dimensions — grouped by reason
+    if report.excluded_reasons:
+        from collections import defaultdict
         from seclens.roles.dimensions import DIMENSION_NAMES
-        excluded_names = [DIMENSION_NAMES.get(d, d) for d in report.excluded_dimensions]
-        label = "Not applicable (Code-in-Prompt)" if report.layer_note else "Excluded (no data)"
+
+        by_reason: dict[str, list[str]] = defaultdict(list)
+        for dim_id, reason in report.excluded_reasons.items():
+            by_reason[reason].append(DIMENSION_NAMES.get(dim_id, dim_id))
+
         console.print()
-        console.print(f"[dim]{label}: {', '.join(excluded_names)}[/dim]")
+        for reason, names in sorted(by_reason.items()):
+            console.print(f"[dim]Not applicable ({reason}): {', '.join(names)}[/dim]")
 
     # Layer note
     if report.layer_note:
