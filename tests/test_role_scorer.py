@@ -189,14 +189,14 @@ class TestGrading:
     def test_grade_boundaries(self) -> None:
         from seclens.roles.scorer import _score_to_grade
         assert _score_to_grade(95) == "A"
-        assert _score_to_grade(90) == "A"
-        assert _score_to_grade(89.9) == "B"
-        assert _score_to_grade(80) == "B"
-        assert _score_to_grade(79.9) == "C"
-        assert _score_to_grade(70) == "C"
-        assert _score_to_grade(69.9) == "D"
-        assert _score_to_grade(60) == "D"
-        assert _score_to_grade(59.9) == "F"
+        assert _score_to_grade(75) == "A"
+        assert _score_to_grade(74.9) == "B"
+        assert _score_to_grade(60) == "B"
+        assert _score_to_grade(59.9) == "C"
+        assert _score_to_grade(50) == "C"
+        assert _score_to_grade(49.9) == "D"
+        assert _score_to_grade(40) == "D"
+        assert _score_to_grade(39.9) == "F"
         assert _score_to_grade(0) == "F"
 
 

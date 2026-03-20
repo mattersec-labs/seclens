@@ -51,13 +51,13 @@ def _unavailable_dimensions(results: list[TaskResult]) -> set[str]:
 # ---------------------------------------------------------------------------
 
 def _score_to_grade(score: float) -> str:
-    if score >= 90:
+    if score >= 75:
         return "A"
-    if score >= 80:
-        return "B"
-    if score >= 70:
-        return "C"
     if score >= 60:
+        return "B"
+    if score >= 50:
+        return "C"
+    if score >= 40:
         return "D"
     return "F"
 
@@ -75,10 +75,10 @@ _ROLE_CONTEXTS = {
 }
 
 _GRADE_TEMPLATES = {
-    "A": "Strong recommendation for {context}. Meets or exceeds requirements across all critical dimensions.",
-    "B": "Recommended for {context}. Review weak dimensions ({weaknesses}) before deployment.",
-    "C": "Conditionally suitable for {context}. Requires human oversight. Key gaps: {weaknesses}.",
-    "D": "Not recommended for {context}. Major gaps in: {weaknesses}.",
+    "A": "Excellent for {context}. Strong performance across critical dimensions.",
+    "B": "Good for {context}. Review weak dimensions ({weaknesses}) before deployment.",
+    "C": "Fair for {context}. Requires human oversight. Key gaps: {weaknesses}.",
+    "D": "Poor for {context}. Significant gaps in: {weaknesses}.",
     "F": "Not suitable for {context}. Fundamental capability gaps across multiple dimensions.",
 }
 
