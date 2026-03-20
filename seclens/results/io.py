@@ -66,6 +66,39 @@ def read_results(path: Path) -> list[TaskResult]:
     return results
 
 
+def read_results_tolerant(path: Path) -> tuple[list[TaskResult], list[str]]:
+    """Read TaskResults, skipping corrupt lines instead of raising.
+
+    Returns:
+        Tuple of (valid_results, corrupt_task_ids). Corrupt lines where
+        task_id can be extracted are included in corrupt_task_ids.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"Results file not found: {path}")
+
+    results: list[TaskResult] = []
+    corrupt_ids: list[str] = []
+
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                results.append(TaskResult.model_validate_json(line))
+            except Exception:
+                # Try to extract task_id from corrupt line
+                try:
+                    data = json.loads(line)
+                    task_id = data.get("task_id")
+                    if task_id:
+                        corrupt_ids.append(task_id)
+                except json.JSONDecodeError:
+                    pass
+
+    return results, corrupt_ids
+
+
 def deduplicate_results(path: Path) -> int:
     """Remove duplicate task_ids from JSONL, keeping the last occurrence.
 

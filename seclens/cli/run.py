@@ -190,13 +190,19 @@ def run_command(
             console.print(f"[red]Results file not found: {retry_failed}[/red]")
             raise typer.Exit(code=1)
 
-        existing = read_results(retry_failed)
+        from seclens.results.io import read_results_tolerant
+
+        existing, corrupt_ids = read_results_tolerant(retry_failed)
         failed_ids = {r.task_id for r in existing if r.error is not None}
+        # Corrupt lines are also treated as failed — need re-evaluation
+        failed_ids.update(corrupt_ids)
 
         if not failed_ids:
             console.print("[green]No failed tasks found. Nothing to retry.[/green]")
             raise typer.Exit(code=0)
 
+        if corrupt_ids:
+            console.print(f"[yellow]Found {len(corrupt_ids)} corrupt entries (will be re-evaluated)[/yellow]")
         console.print(f"[yellow]Retrying {len(failed_ids)} failed tasks from {retry_failed.name}[/yellow]")
         pending_tasks = [t for t in tasks if t.id in failed_ids]
         output_path = retry_failed
