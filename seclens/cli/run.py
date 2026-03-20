@@ -194,17 +194,28 @@ def run_command(
 
         existing, corrupt_ids = read_results_tolerant(retry_failed)
         failed_ids = {r.task_id for r in existing if r.error is not None}
-        # Corrupt lines are also treated as failed — need re-evaluation
         failed_ids.update(corrupt_ids)
 
-        if not failed_ids:
-            console.print("[green]No failed tasks found. Nothing to retry.[/green]")
+        # Find tasks in dataset that have no result at all
+        completed_ids = {r.task_id for r in existing} | set(corrupt_ids)
+        all_task_ids = {t.id for t in tasks}
+        missing_ids = all_task_ids - completed_ids
+
+        retry_ids = failed_ids | missing_ids
+
+        if not retry_ids:
+            console.print("[green]No failed or missing tasks found. Nothing to retry.[/green]")
             raise typer.Exit(code=0)
 
+        if failed_ids:
+            console.print(f"[yellow]Failed tasks: {len(failed_ids)}[/yellow]")
         if corrupt_ids:
-            console.print(f"[yellow]Found {len(corrupt_ids)} corrupt entries (will be re-evaluated)[/yellow]")
-        console.print(f"[yellow]Retrying {len(failed_ids)} failed tasks from {retry_failed.name}[/yellow]")
-        pending_tasks = [t for t in tasks if t.id in failed_ids]
+            console.print(f"[yellow]Corrupt entries: {len(corrupt_ids)} (included in failed)[/yellow]")
+        if missing_ids:
+            console.print(f"[yellow]Missing tasks: {len(missing_ids)}[/yellow]")
+        console.print(f"[yellow]Total to retry: {len(retry_ids)} from {retry_failed.name}[/yellow]")
+
+        pending_tasks = [t for t in tasks if t.id in retry_ids]
         output_path = retry_failed
         # Check for existing debug file
         debug_name = f"debug_{retry_failed.name}"
