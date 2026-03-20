@@ -14,6 +14,7 @@ class GroupBreakdown(BaseModel):
     task_count: int
     positive_count: int
     negative_count: int
+    verdict_accuracy: float
     recall: float
     precision: float
     f1: float

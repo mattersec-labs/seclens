@@ -97,6 +97,9 @@ def _breakdown(results: list[TaskResult]) -> GroupBreakdown:
     positive = [r for r in results if r.task_type == TaskType.TRUE_POSITIVE]
     negative = [r for r in results if r.task_type != TaskType.TRUE_POSITIVE]
 
+    # Verdict accuracy: correct verdicts across ALL tasks in group
+    verdict_accuracy = sum(r.scores.verdict for r in results) / len(results) if results else 0.0
+
     # Recall: correct positive verdicts / total positive
     recall = sum(r.scores.verdict for r in positive) / len(positive) if positive else 0.0
 
@@ -139,6 +142,7 @@ def _breakdown(results: list[TaskResult]) -> GroupBreakdown:
         task_count=len(results),
         positive_count=len(positive),
         negative_count=len(negative),
+        verdict_accuracy=round(verdict_accuracy, 4),
         recall=round(recall, 4),
         precision=round(precision, 4),
         f1=round(f1, 4),

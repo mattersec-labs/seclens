@@ -109,7 +109,7 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
     cat_table.add_column("Category", style="cyan")
     cat_table.add_column("Weight", justify="right", style="grey74")
     cat_table.add_column("Score", justify="right", style="grey74")
-    cat_table.add_column("Pct", justify="right", style="grey74")
+    cat_table.add_column("Percentage", justify="right", style="grey74")
 
     for cat in report.categories:
         pct = cat.weighted_score / cat.total_weight * 100 if cat.total_weight > 0 else 0
@@ -139,7 +139,7 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
             vcat_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
             vcat_table.add_column("Category", style="cyan")
             vcat_table.add_column("Tasks", justify="right", style="grey74")
-            vcat_table.add_column("Recall", justify="right", style="grey74")
+            vcat_table.add_column("Detection Rate", justify="right", style="grey74")
             vcat_table.add_column("Precision", justify="right", style="grey74")
             vcat_table.add_column("F1", justify="right", style="grey74")
             vcat_table.add_column("CWE Acc", justify="right", style="grey74")
@@ -148,8 +148,8 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
             for name, bd in sorted(by_category.items()):
                 vcat_table.add_row(
                     name, str(bd.task_count),
-                    f"{bd.recall:.2f}", f"{bd.precision:.2f}", f"{bd.f1:.2f}",
-                    f"{bd.cwe_accuracy:.2f}", f"{bd.mean_location_iou:.2f}", f"{bd.actionable_rate:.2f}",
+                    f"{bd.recall*100:.1f}%", f"{bd.precision*100:.1f}%", f"{bd.f1*100:.1f}%",
+                    f"{bd.cwe_accuracy*100:.1f}%", f"{bd.mean_location_iou*100:.1f}%", f"{bd.actionable_rate*100:.1f}%",
                 )
             console.print(vcat_table)
 
@@ -162,7 +162,7 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
             lang_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
             lang_table.add_column("Language", style="cyan")
             lang_table.add_column("Tasks", justify="right", style="grey74")
-            lang_table.add_column("Recall", justify="right", style="grey74")
+            lang_table.add_column("Detection Rate", justify="right", style="grey74")
             lang_table.add_column("Precision", justify="right", style="grey74")
             lang_table.add_column("F1", justify="right", style="grey74")
             lang_table.add_column("CWE Acc", justify="right", style="grey74")
@@ -170,8 +170,8 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
             for name, bd in sorted(by_language.items()):
                 lang_table.add_row(
                     name, str(bd.task_count),
-                    f"{bd.recall:.2f}", f"{bd.precision:.2f}", f"{bd.f1:.2f}",
-                    f"{bd.cwe_accuracy:.2f}", f"{bd.mean_location_iou:.2f}",
+                    f"{bd.recall*100:.1f}%", f"{bd.precision*100:.1f}%", f"{bd.f1*100:.1f}%",
+                    f"{bd.cwe_accuracy*100:.1f}%", f"{bd.mean_location_iou*100:.1f}%",
                 )
             console.print(lang_table)
 
@@ -186,17 +186,17 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
             pp_table.add_column("Tasks", justify="right", style="grey74")
             pp_table.add_column("Verdict Acc", justify="right", style="grey74")
             for name, bd in sorted(by_postpatch.items()):
-                pp_table.add_row(name, str(bd.task_count), f"{bd.recall:.2f}")
+                pp_table.add_row(name, str(bd.task_count), f"{bd.verdict_accuracy*100:.1f}%")
             console.print(pp_table)
 
         # Legend
         console.print()
-        console.print("[dim]Recall: % of real vulnerabilities detected | "
-                      "Precision: % of flagged findings that are real | "
-                      "F1: balanced precision/recall[/dim]")
-        console.print("[dim]CWE Acc: correct vulnerability type identification | "
-                      "IoU: location precision (0-1) | "
-                      "Actionable: complete findings (verdict + CWE + location)[/dim]")
+        console.print("[dim][bold]Detection Rate:[/bold] % of real vulnerabilities detected | "
+                      "[bold]Precision:[/bold] % of flagged findings that are real | "
+                      "[bold]F1:[/bold] balanced precision/recall[/dim]")
+        console.print("[dim][bold]CWE Acc:[/bold] correct vulnerability type identification | "
+                      "[bold]IoU:[/bold] location precision | "
+                      "[bold]Actionable:[/bold] complete findings (verdict + CWE + location)[/dim]")
 
     # Excluded dimensions — show human-readable names
     if report.excluded_dimensions:
