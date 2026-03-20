@@ -12,7 +12,7 @@ dimensions:
   D9:  { weight: 4,  name: "CWE Coverage Breadth" }
   D10: { weight: 6,  name: "Worst Category Floor" }
   D11: { weight: 3,  name: "Cross-Language Consistency" }
-  D13: { weight: 2,  name: "SAST FP Filtering" }
+  D5:  { weight: 2,  name: "True Negative Rate" }
   D14: { weight: 4,  name: "Evidence Completeness" }
   D18: { weight: 2,  name: "Cost per Task" }
   D28: { weight: 10, name: "Severity-Weighted Recall" }
@@ -23,7 +23,7 @@ dimensions:
 
 categories:
   Detection: [D1, D2, D3, D6, D8]
-  Coverage: [D9, D10, D11, D13]
+  Coverage: [D5, D9, D10, D11]
   Reasoning: [D14]
   Efficiency: [D18]
   "Risk & Severity": [D28, D29]

@@ -6,7 +6,9 @@ Each task is scored on up to three dimensions, producing a points-based score th
 
 ### Positive Tasks (true_positive)
 
-Scored on verdict + CWE + location. Maximum 3 points.
+Scoring depends on the evaluation layer:
+
+**Tool-Use layer**: Scored on verdict + CWE + location. Maximum 3 points.
 
 | Achievement | Points | Requirement |
 |------------|:------:|-------------|
@@ -14,7 +16,16 @@ Scored on verdict + CWE + location. Maximum 3 points.
 | Correct CWE | +1 | Exact CWE-ID match (e.g., CWE-89) |
 | Accurate location | +1 | Continuous IoU score (0.0–1.0) based on line range overlap |
 
-A model that says "this code is vulnerable, it's SQL injection at lines 37-42" and is correct on all three gets the full 3 points. A model that correctly says "vulnerable" but misidentifies the CWE gets only 1 point.
+**Code-in-Prompt layer**: Scored on verdict + CWE only. Maximum 2 points.
+
+| Achievement | Points | Requirement |
+|------------|:------:|-------------|
+| Correct verdict | 1 | Model correctly identifies code as vulnerable |
+| Correct CWE | +1 | Exact CWE-ID match (e.g., CWE-89) |
+
+Location is not scored in Code-in-Prompt mode because the model receives only the function code — no file path or absolute line numbers are available for location validation.
+
+A model that says "this code is vulnerable, it's SQL injection at lines 37-42" and is correct on all three gets the full 3 points (Tool-Use) or 2 points (Code-in-Prompt, location not scored).
 
 ### Negative Tasks (post_patch)
 

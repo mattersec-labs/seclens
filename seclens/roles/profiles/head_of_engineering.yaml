@@ -9,7 +9,7 @@ dimensions:
   D7:  { weight: 8,  name: "Mean Location IoU" }
   D8:  { weight: 10, name: "Actionable Finding Rate" }
   D12: { weight: 3,  name: "Worst Language Floor" }
-  D13: { weight: 4,  name: "SAST FP Filtering" }
+  D5:  { weight: 4,  name: "True Negative Rate" }
   D18: { weight: 7,  name: "Cost per Task" }
   D21: { weight: 7,  name: "Wall Time per Task" }
   D22: { weight: 5,  name: "Throughput" }
@@ -20,6 +20,6 @@ dimensions:
 
 categories:
   Detection: [D2, D3, D7, D8]
-  Coverage: [D12, D13]
+  Coverage: [D5, D12]
   Efficiency: [D18, D21, D22, D23]
   Robustness: [D31, D32, D33]

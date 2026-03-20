@@ -12,7 +12,7 @@ dimensions:
   D9:  { weight: 7,  name: "CWE Coverage Breadth" }
   D10: { weight: 5,  name: "Worst Category Floor" }
   D11: { weight: 4,  name: "Cross-Language Consistency" }
-  D13: { weight: 2,  name: "SAST FP Filtering" }
+  D15: { weight: 2,  name: "Reasoning Presence" }
   D14: { weight: 10, name: "Evidence Completeness" }
   D16: { weight: 7,  name: "Reasoning + Correct Verdict" }
   D17: { weight: 2,  name: "FP Reasoning Quality" }
@@ -20,6 +20,6 @@ dimensions:
 
 categories:
   Detection: [D1, D2, D6, D7, D8]
-  Coverage: [D9, D10, D11, D13]
-  Reasoning: [D14, D16, D17]
+  Coverage: [D9, D10, D11]
+  Reasoning: [D14, D15, D16, D17]
   Robustness: [D35]

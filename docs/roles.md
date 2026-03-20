@@ -12,7 +12,7 @@ SecLens produces different scores for different stakeholders. The same evaluatio
 
 The CISO needs to know if the tool reduces organizational risk. They care most about not missing critical vulnerabilities (severity-weighted recall), having consistent coverage across all vulnerability categories (worst category floor), and generating findings precise enough for their team to act on (actionable finding rate).
 
-**Top weighted dimensions**: MCC, Severity-Weighted Detection Rate, Critical Miss Rate, Detection Rate, Worst Category Floor.
+**Top weighted dimensions**: MCC, Severity-Weighted Detection Rate, Critical Miss Rate, Detection Rate, Worst Category Floor, True Negative Rate.
 
 ### CAIO — Chief AI Officer
 
@@ -32,7 +32,7 @@ The CAIO is building an AI strategy. They need to know which model delivers the 
 
 The researcher needs the model to demonstrate real understanding, not pattern matching. Can it identify the exact CWE? Can it pinpoint the vulnerable lines? Does it trace the data flow from source to sink? When it explains its reasoning, is it correct?
 
-**Top weighted dimensions**: CWE Accuracy, Mean Location IoU, Evidence Completeness, MCC, Reasoning + Correct Verdict.
+**Top weighted dimensions**: CWE Accuracy, Mean Location IoU, Evidence Completeness, MCC, Reasoning + Correct Verdict, Reasoning Presence.
 
 ### Head of Engineering
 
@@ -42,7 +42,7 @@ The researcher needs the model to demonstrate real understanding, not pattern ma
 
 Engineering leads care about developer adoption. High false positives kill adoption — developers disable noisy tools within a week. The model must produce precise findings (precision), locate the exact code (location IoU), run fast enough for CI/CD (wall time), and not crash (parse success rate).
 
-**Top weighted dimensions**: Precision, Actionable Finding Rate, Mean Location IoU, Parse Success Rate, Wall Time per Task.
+**Top weighted dimensions**: Precision, Actionable Finding Rate, Mean Location IoU, Parse Success Rate, Wall Time per Task, True Negative Rate.
 
 ### AI as Actor
 
