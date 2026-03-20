@@ -29,6 +29,8 @@ class WeightProfile:
     def total_weight(self) -> float:
         return sum(self.dimensions.values())
 
+    EXPECTED_TOTAL_WEIGHT = 80.0
+
     def validate(self) -> list[str]:
         """Return list of validation errors (empty if valid)."""
         errors = []
@@ -36,8 +38,8 @@ class WeightProfile:
             if dim_id not in DIMENSION_FUNCTIONS:
                 errors.append(f"Unknown dimension ID: {dim_id}")
         total = self.total_weight
-        if abs(total - 80.0) > 0.01:
-            errors.append(f"Weights sum to {total}, expected 80.0")
+        if abs(total - self.EXPECTED_TOTAL_WEIGHT) > 0.01:
+            errors.append(f"Weights sum to {total}, expected {self.EXPECTED_TOTAL_WEIGHT}")
         return errors
 
 

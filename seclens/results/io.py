@@ -76,6 +76,12 @@ def read_results_tolerant(path: Path) -> tuple[list[TaskResult], list[str]]:
     if not path.exists():
         raise FileNotFoundError(f"Results file not found: {path}")
 
+    if path.name.startswith("debug_"):
+        raise ValueError(
+            f"'{path.name}' is a debug file, not a results file. "
+            f"Use the corresponding results file instead: '{path.name.removeprefix('debug_')}'"
+        )
+
     results: list[TaskResult] = []
     corrupt_ids: list[str] = []
 

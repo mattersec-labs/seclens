@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from seclens.results.io import deduplicate_results, get_completed_ids, read_results, write_result
+from seclens.results.io import deduplicate_results, get_completed_ids, read_results, read_results_tolerant, write_result
 from seclens.schemas.output import ParsedOutput, ParseResult, ParseStatus
 from seclens.schemas.scoring import RunMetadata, TaskMetrics, TaskResult, TaskScore
 from seclens.schemas.task import TaskType
@@ -186,3 +186,42 @@ class TestDeduplicateResults:
         results = read_results(path)
         assert len(results) == 1
         assert results[0].scores.verdict == 1
+
+
+class TestReadResultsTolerant:
+    def test_valid_results(self, tmp_path: Path) -> None:
+        path = tmp_path / "results.jsonl"
+        write_result(path, _make_result("t1"))
+        write_result(path, _make_result("t2"))
+        results, corrupt = read_results_tolerant(path)
+        assert len(results) == 2
+        assert corrupt == []
+
+    def test_skips_corrupt_lines(self, tmp_path: Path) -> None:
+        path = tmp_path / "results.jsonl"
+        write_result(path, _make_result("t1"))
+        with open(path, "a") as f:
+            f.write('{"task_id": "t2", "bad": "data"}\n')
+        write_result(path, _make_result("t3"))
+        results, corrupt = read_results_tolerant(path)
+        assert len(results) == 2
+        assert "t2" in corrupt
+
+    def test_unparseable_json(self, tmp_path: Path) -> None:
+        path = tmp_path / "results.jsonl"
+        write_result(path, _make_result("t1"))
+        with open(path, "a") as f:
+            f.write("not json at all\n")
+        results, corrupt = read_results_tolerant(path)
+        assert len(results) == 1
+        assert corrupt == []  # can't extract task_id from non-JSON
+
+    def test_file_not_found(self, tmp_path: Path) -> None:
+        with pytest.raises(FileNotFoundError):
+            read_results_tolerant(tmp_path / "missing.jsonl")
+
+    def test_debug_file_rejected(self, tmp_path: Path) -> None:
+        path = tmp_path / "debug_results.jsonl"
+        path.write_text("")
+        with pytest.raises(ValueError, match="debug file"):
+            read_results_tolerant(path)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from seclens.schemas.output import ParseResult
 from seclens.schemas.task import EvalLayer, TaskType
@@ -23,6 +23,12 @@ class TaskScore(BaseModel):
     location: float = Field(ge=0.0, le=1.0)
     earned: float = Field(ge=0.0, le=3.0)
     max_task_points: Literal[1, 2, 3]
+
+    @model_validator(mode="after")
+    def _earned_within_max(self) -> TaskScore:
+        if self.earned > self.max_task_points:
+            raise ValueError(f"earned ({self.earned}) exceeds max_task_points ({self.max_task_points})")
+        return self
 
 
 class TaskMetrics(BaseModel):
