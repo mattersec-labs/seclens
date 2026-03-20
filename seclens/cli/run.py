@@ -200,7 +200,10 @@ def run_command(
         console.print(f"[yellow]Retrying {len(failed_ids)} failed tasks from {retry_failed.name}[/yellow]")
         pending_tasks = [t for t in tasks if t.id in failed_ids]
         output_path = retry_failed
-        debug_path = None
+        # Check for existing debug file
+        debug_name = f"debug_{retry_failed.name}"
+        debug_candidate = retry_failed.parent / debug_name
+        debug_path = debug_candidate if debug or debug_candidate.exists() else None
         is_retry = True
     else:
         # Normal resumability
