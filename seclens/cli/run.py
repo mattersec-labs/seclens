@@ -127,6 +127,13 @@ def run_command(
             help="Minimum GT recall for location credit (0.0–1.0)",
         ),
     ] = 1.0,
+    retry_failed: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--retry-failed",
+            help="Re-evaluate failed tasks in this results file",
+        ),
+    ] = None,
     debug: Annotated[
         bool,
         typer.Option(
@@ -174,15 +181,36 @@ def run_command(
     # Load tasks
     tasks = load_dataset(config.dataset)
 
-    # Resumability
-    completed_ids: set[str] = set()
-    if config.resume and output_path.exists():
-        completed_ids = get_completed_ids(output_path)
+    # Retry-failed mode
+    is_retry = False
+    if retry_failed:
+        from seclens.results.io import deduplicate_results
 
-    pending_tasks = [t for t in tasks if t.id not in completed_ids]
+        if not retry_failed.exists():
+            console.print(f"[red]Results file not found: {retry_failed}[/red]")
+            raise typer.Exit(code=1)
+
+        existing = read_results(retry_failed)
+        failed_ids = {r.task_id for r in existing if r.error is not None}
+
+        if not failed_ids:
+            console.print("[green]No failed tasks found. Nothing to retry.[/green]")
+            raise typer.Exit(code=0)
+
+        console.print(f"[yellow]Retrying {len(failed_ids)} failed tasks from {retry_failed.name}[/yellow]")
+        pending_tasks = [t for t in tasks if t.id in failed_ids]
+        output_path = retry_failed
+        debug_path = None
+        is_retry = True
+    else:
+        # Normal resumability
+        completed_ids: set[str] = set()
+        if config.resume and output_path.exists():
+            completed_ids = get_completed_ids(output_path)
+        pending_tasks = [t for t in tasks if t.id not in completed_ids]
 
     # Run config panel (includes task count)
-    _print_config(config, output_path, debug_path, len(tasks), len(completed_ids))
+    _print_config(config, output_path, debug_path, len(tasks), len(tasks) - len(pending_tasks))
     console.print()
 
     if config.dry_run:
@@ -365,6 +393,13 @@ def run_command(
             console.print("[dim]Cleaning up sandboxes...[/dim]")
             sandbox_manager.cleanup_all()
             console.print("[dim]Done.[/dim]")
+
+    # Deduplicate after retry (appended results may overlap with originals)
+    if is_retry and results and not interrupted:
+        from seclens.results.io import deduplicate_results
+        removed = deduplicate_results(output_path)
+        if removed:
+            console.print(f"[dim]Deduplicated {removed} old entries from {output_path.name}[/dim]")
 
     # Summary
     _print_run_summary(results, interrupted)

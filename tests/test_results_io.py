@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from seclens.results.io import get_completed_ids, read_results, write_result
+from seclens.results.io import deduplicate_results, get_completed_ids, read_results, write_result
 from seclens.schemas.output import ParsedOutput, ParseResult, ParseStatus
 from seclens.schemas.scoring import RunMetadata, TaskMetrics, TaskResult, TaskScore
 from seclens.schemas.task import TaskType
@@ -152,3 +152,37 @@ class TestGetCompletedIds:
             f.write("\n\n\n")
         ids = get_completed_ids(path)
         assert ids == {"t1"}
+
+
+class TestDeduplicateResults:
+    def test_removes_duplicates(self, tmp_path: Path) -> None:
+        path = tmp_path / "results.jsonl"
+        write_result(path, _make_result("t1", verdict=0))
+        write_result(path, _make_result("t2", verdict=1))
+        write_result(path, _make_result("t1", verdict=1))  # duplicate, should replace
+        assert len(path.read_text().strip().splitlines()) == 3
+        removed = deduplicate_results(path)
+        assert removed == 1
+        results = read_results(path)
+        assert len(results) == 2
+        t1 = next(r for r in results if r.task_id == "t1")
+        assert t1.scores.verdict == 1  # last write wins
+
+    def test_no_duplicates(self, tmp_path: Path) -> None:
+        path = tmp_path / "results.jsonl"
+        write_result(path, _make_result("t1"))
+        write_result(path, _make_result("t2"))
+        removed = deduplicate_results(path)
+        assert removed == 0
+        assert len(read_results(path)) == 2
+
+    def test_all_same_id(self, tmp_path: Path) -> None:
+        path = tmp_path / "results.jsonl"
+        write_result(path, _make_result("t1", verdict=0))
+        write_result(path, _make_result("t1", verdict=0))
+        write_result(path, _make_result("t1", verdict=1))
+        removed = deduplicate_results(path)
+        assert removed == 2
+        results = read_results(path)
+        assert len(results) == 1
+        assert results[0].scores.verdict == 1

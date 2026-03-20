@@ -66,6 +66,38 @@ def read_results(path: Path) -> list[TaskResult]:
     return results
 
 
+def deduplicate_results(path: Path) -> int:
+    """Remove duplicate task_ids from JSONL, keeping the last occurrence.
+
+    Reads all lines, builds a last-write-wins map by task_id, rewrites
+    the file with only the final version of each task.
+
+    Returns:
+        Number of duplicate lines removed.
+    """
+    with _write_lock:
+        lines = path.read_text().strip().splitlines()
+        seen: dict[str, str] = {}
+        for line in lines:
+            if not line.strip():
+                continue
+            try:
+                data = json.loads(line)
+                task_id = data.get("task_id")
+                if task_id is not None:
+                    seen[task_id] = line
+            except json.JSONDecodeError:
+                continue
+
+        deduped = list(seen.values())
+        removed = len(lines) - len(deduped)
+
+        if removed > 0:
+            path.write_text("\n".join(deduped) + "\n")
+
+        return removed
+
+
 def get_completed_ids(path: Path) -> set[str]:
     """Extract task IDs from a results JSONL without full deserialization.
 
