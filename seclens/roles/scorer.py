@@ -197,7 +197,7 @@ def generate_role_report(
     if detected_layer == EvalLayer.CODE_IN_PROMPT:
         available_weight = sum(d.weight for d in dimension_scores)
         layer_note = (
-            f"Code-in-Prompt evaluation ({available_weight:.0f}/{profile.total_weight:.0f} dimensions scored). "
+            f"Code-in-Prompt evaluation ({available_weight:.0f}/{profile.total_weight:.0f} weight scored). "
             "Location precision and tool-use dimensions not measured. "
             "Run with --layer tool-use for full coverage."
         )
