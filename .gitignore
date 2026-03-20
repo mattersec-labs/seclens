@@ -16,3 +16,4 @@ htmlcov/
 *.jsonl
 !bootstrap.jsonl
 out/
+.DS_Store

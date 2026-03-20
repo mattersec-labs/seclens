@@ -1,13 +1,66 @@
 # SecLens
 
-Benchmark for evaluating how well LLMs detect security vulnerabilities in real-world code. Tests models against confirmed CVEs across multiple CWE categories using two evaluation layers.
+Security vulnerability detection benchmark for LLMs. Tests models against confirmed CVEs from real-world open source projects across 8 vulnerability categories and 10 programming languages, producing role-specific scores for different organizational stakeholders.
 
-## Evaluation Layers
+## Key Features
 
-- **Layer 1 (Code-in-prompt)** — The vulnerable function is provided directly in the prompt. Tests pure reasoning ability without tool use.
-- **Layer 2 (Tool-use)** — The model is given access to a sandboxed repository clone and tools (`read_file`, `search`, `list_dir`). Tests real-world auditing ability with navigation.
+- **Real CVEs**: 406 tasks from 93 open source projects — not synthetic test cases
+- **Two evaluation layers**: Code-in-Prompt (reasoning) and Tool-Use (real-world auditing)
+- **35 dimensions**: Detection, coverage, reasoning, efficiency, tool-use, severity, robustness
+- **5 role perspectives**: CISO, CAIO, Security Researcher, Head of Engineering, AI as Actor
+- **10 languages**: Python, JavaScript/TypeScript, Go, Ruby, Rust, Java, PHP, C, C++, C#
+- **8 categories**: Injection, Broken Access Control, Cryptographic Failures, Authentication, Deserialization, SSRF, Memory Safety, Input Validation
 
-## Setup
+## Quick Start
+
+```bash
+# Set your API key
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Run evaluation
+seclens run -m "anthropic/claude-sonnet-4-20250514" -d dataset.jsonl
+
+# View role report
+seclens report -r out/report_model.json --role ciso
+
+# Compare models
+seclens compare -r report_a.json -r report_b.json --all-roles
+```
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| `seclens run` | Run evaluation against a model |
+| `seclens summary` | View aggregate metrics from a run |
+| `seclens report --role` | Generate role-specific analysis |
+| `seclens compare --role` | Compare models through a role lens |
+
+## Scoring
+
+Each vulnerability task is scored on three dimensions:
+
+| Dimension | Points | What It Measures |
+|-----------|:------:|------------------|
+| Verdict | 1 | Correctly identifies if code is vulnerable |
+| CWE | +1 | Identifies the correct vulnerability type |
+| Location | +1 | Pinpoints the vulnerable code (continuous IoU) |
+
+35 aggregate dimensions are computed and weighted per role to produce a decision score (0-100) with grades A through F.
+
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [Overview](docs/overview.md) | What SecLens is and how it works |
+| [Evaluation Layers](docs/evaluation-layers.md) | Code-in-Prompt vs Tool-Use |
+| [Scoring](docs/scoring.md) | Per-task scoring, IoU, grading, confidence intervals |
+| [Dimensions](docs/dimensions.md) | All 35 dimensions across 7 categories |
+| [Roles](docs/roles.md) | 5 stakeholder perspectives and weight priorities |
+| [Coverage](docs/coverage.md) | Vulnerability categories, languages, dataset design |
+| [Usage Guide](docs/usage.md) | Configuration, CLI options, helper scripts |
+
+## Development Setup
 
 ```bash
 uv venv --python 3.13
@@ -15,88 +68,19 @@ uv sync --extra dev
 cp .env.example .env  # fill in API keys
 ```
 
-### API Keys
-
-| Provider | Environment Variable | Notes |
-|----------|---------------------|-------|
-| Anthropic | `ANTHROPIC_API_KEY` | |
-| OpenAI | `OPENAI_API_KEY` | |
-| Google Gemini | `GOOGLE_API_KEY` | |
-| Ollama | — | Local, no key needed |
-| LiteLLM | `LITELLM_API_KEY` | Key for upstream provider |
-
-## Usage
-
-### Run an evaluation
-
-```bash
-# Layer 2 (default) with HuggingFace dataset
-seclens run -m "anthropic/claude-sonnet-4-20250514" -d sidds020/SecLens:test_lite
-
-# Layer 1 with local dataset
-seclens run -m "openai/gpt-4.1" -d tasks.jsonl --layer 1
-
-# Ollama (local models)
-seclens run -m "ollama/qwen3:latest" -d sidds020/SecLens:test_lite
-
-# Customize workers, prompt preset, and budget
-seclens run -m "google/gemini-2.5-flash" -d sidds020/SecLens:test -w 10 -p security_expert --max-cost 5.0
-```
-
-### Generate a report
-
-```bash
-seclens report -r out/results_*.jsonl
-```
-
-### Compare runs
-
-```bash
-seclens compare -r out/results_model_a.jsonl -r out/results_model_b.jsonl
-```
-
-### Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--model, -m` | Model identifier (e.g. `anthropic/claude-sonnet-4-20250514`) | required |
-| `--dataset, -d` | HuggingFace `repo:split` or local JSONL path | required |
-| `--layer, -l` | Evaluation layer (1 or 2) | 2 |
-| `--prompt, -p` | Prompt preset (`base`, `minimal`, `security_expert`) or YAML path | `base` |
-| `--workers, -w` | Parallel evaluation workers | 5 |
-| `--max-cost` | Budget cap in USD | unlimited |
-| `--max-turns` | Max LLM turns per task | 200 |
-| `--resume` | Resume from existing output file | off |
-| `--debug` | Save full message chains to debug JSONL | off |
-
-## Scoring
-
-Each task awards points based on prediction accuracy:
-
-| Component | Points | Criteria |
-|-----------|--------|----------|
-| Verdict | 1 | Correct vulnerable/not-vulnerable classification |
-| CWE | 1 | Correct CWE identifier (positive tasks only) |
-| Location | 1 | File path + line range with IoU above threshold (positive tasks only) |
-
-Positive tasks: max 3 points. Negative tasks: max 1 point (verdict only).
-
 ## Project Structure
 
 ```
 seclens/
-  cli/          CLI commands (run, report, compare)
+  cli/          CLI commands (run, summary, report, compare)
   dataset/      HuggingFace and local JSONL loading
   evaluation/   Evaluation runner and orchestration
   parsing/      LLM response parsing
   prompts/      Prompt templates and builder
-  sandbox/      Git clone sandboxing for Layer 2
-  schemas/      Pydantic models (tasks, output, debug)
-  scoring/      Scoring logic (verdict, CWE, location)
-  results/      JSONL result I/O
+  roles/        Role dimensions, normalization, scoring, weight profiles
+  sandbox/      Git clone sandboxing for Tool-Use layer
+  schemas/      Pydantic models (tasks, output, scoring, reports)
+  scoring/      Scoring logic, aggregation, model report generation
+  results/      JSONL result I/O with thread safety
   worker/       Thread pool for parallel evaluation
 ```
-
-## Dependencies
-
-SecLens uses [engine-harness](../engine-harness) for LLM adapter management, agent loops, and tool execution.
