@@ -93,16 +93,26 @@ _GRADE_TEMPLATES = {
     "F": "Not suitable for {context}. Fundamental capability gaps across multiple dimensions.",
 }
 
+_CIP_GRADE_TEMPLATES = {
+    "A": "Excellent reasoning ability for {context}. Strong detection and classification. Tool-use and location precision not assessed.",
+    "B": "Good reasoning ability for {context}. Review weak dimensions ({weaknesses}). Tool-use and location precision not assessed.",
+    "C": "Fair reasoning ability for {context}. Requires human oversight. Key gaps: {weaknesses}. Tool-use and location precision not assessed.",
+    "D": "Poor reasoning ability for {context}. Significant gaps in: {weaknesses}. Tool-use and location precision not assessed.",
+    "F": "Not suitable for {context}. Fundamental reasoning gaps across multiple dimensions.",
+}
+
 
 def _generate_recommendation(
     role: str,
     grade: str,
     dimensions: list[DimensionScore],
+    layer: EvalLayer | None = None,
 ) -> str:
     context = _ROLE_CONTEXTS.get(role, f"using this model for {role}")
     weaknesses = sorted(dimensions, key=lambda d: d.normalized)[:3]
     weakness_names = ", ".join(d.name for d in weaknesses)
-    template = _GRADE_TEMPLATES[grade]
+    templates = _CIP_GRADE_TEMPLATES if layer == EvalLayer.CODE_IN_PROMPT else _GRADE_TEMPLATES
+    template = templates[grade]
     return template.format(context=context, weaknesses=weakness_names)
 
 
@@ -191,12 +201,12 @@ def generate_role_report(
     # Categories
     categories = _build_categories(dimension_scores, profile)
 
-    # Recommendation
-    recommendation = _generate_recommendation(role, grade, dimension_scores)
-
     # Auto-detect model and layer from results
     detected_model = model or (results[0].run_metadata.model if results else "unknown")
     detected_layer = layer or (results[0].run_metadata.layer if results else EvalLayer.CODE_IN_PROMPT)
+
+    # Recommendation (layer-aware)
+    recommendation = _generate_recommendation(role, grade, dimension_scores, detected_layer)
 
     # Layer note for CIP
     layer_note = None
