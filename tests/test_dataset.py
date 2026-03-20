@@ -19,20 +19,20 @@ BOOTSTRAP_PATH = Path(__file__).parent.parent.parent / "benchmark-harness-resear
 
 class TestParseHfString:
     def test_repo_split(self) -> None:
-        repo, split, version = _parse_hf_string("sidds020/SecLens:test")
-        assert repo == "sidds020/SecLens"
+        repo, split, version = _parse_hf_string("test-org/test-dataset:test")
+        assert repo == "test-org/test-dataset"
         assert split == "test"
         assert version is None
 
     def test_repo_version_split(self) -> None:
-        repo, split, version = _parse_hf_string("sidds020/SecLens@v1.0:test")
-        assert repo == "sidds020/SecLens"
+        repo, split, version = _parse_hf_string("test-org/test-dataset@v1.0:test")
+        assert repo == "test-org/test-dataset"
         assert split == "test"
         assert version == "v1.0"
 
     def test_no_split_raises(self) -> None:
         with pytest.raises(ValueError, match="Invalid dataset string"):
-            _parse_hf_string("sidds020/SecLens")
+            _parse_hf_string("test-org/test-dataset")
 
 
 class TestLoadLocalJsonl:
@@ -107,6 +107,6 @@ class TestFilterTasks:
 class TestLoadHuggingFace:
     @pytest.mark.integration
     def test_load_from_hf(self) -> None:
-        tasks = load_dataset("sidds020/SecLens:test")
+        tasks = load_dataset("test-org/test-dataset:test")
         assert len(tasks) > 0
         assert all(isinstance(t, Task) for t in tasks)

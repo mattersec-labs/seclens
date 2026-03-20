@@ -112,7 +112,7 @@ def _make_engineloop_result(content: str, turns: int = 1) -> EngineLoopResult:
 
 class TestRunConfig:
     def test_defaults(self) -> None:
-        cfg = RunConfig(model="anthropic/claude-sonnet-4-20250514", dataset="sidds020/SecLens:test")
+        cfg = RunConfig(model="anthropic/claude-sonnet-4-20250514", dataset="test-org/test-dataset:test")
         assert cfg.prompt == "base"
         assert cfg.layer == EvalLayer.TOOL_USE
         assert cfg.mode == "guided"
