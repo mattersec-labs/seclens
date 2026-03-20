@@ -38,24 +38,25 @@ def generate_model_report(
     # Round to 4 decimal places
     dimensions = {k: round(v, 4) for k, v in dimensions.items()}
 
-    # Split results by task type
-    positive_results = [r for r in results if r.task_type == TaskType.TRUE_POSITIVE]
+    # Resolve categories for tasks missing them (fallback via paired_with)
+    category_lookup = {r.task_id: r.task_category for r in results if r.task_category}
+
+    def _resolve_category(r: TaskResult) -> str:
+        if r.task_category:
+            return r.task_category
+        if r.paired_with and r.paired_with in category_lookup:
+            return category_lookup[r.paired_with]
+        return "uncategorized"
+
+    # Per-category breakdowns (all tasks, grouped by resolved category)
+    by_category = _compute_group_breakdowns(results, _resolve_category)
+
+    # Per-language breakdowns (all tasks)
+    by_language = _compute_group_breakdowns(results, lambda r: r.task_language)
+
+    # Post-patch / negative tasks only (grouped by resolved category)
     negative_results = [r for r in results if r.task_type != TaskType.TRUE_POSITIVE]
-
-    # Per-category breakdowns (true_positive only)
-    by_category = _compute_group_breakdowns(
-        positive_results, lambda r: r.task_category or "uncategorized",
-    )
-
-    # Per-language breakdowns (true_positive only)
-    by_language = _compute_group_breakdowns(
-        positive_results, lambda r: r.task_language,
-    )
-
-    # Post-patch / negative task breakdowns (grouped by category)
-    by_postpatch = _compute_group_breakdowns(
-        negative_results, lambda r: r.task_category or "uncategorized",
-    )
+    by_postpatch = _compute_group_breakdowns(negative_results, _resolve_category)
 
     errors = sum(1 for r in results if r.error is not None)
     parse_failures = sum(1 for r in results if r.parse_result.output is None and r.error is None)

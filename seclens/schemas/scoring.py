@@ -62,6 +62,7 @@ class TaskResult(BaseModel):
     task_language: str
     ground_truth_cwe: str | None = None
     task_severity: str | None = None
+    paired_with: str | None = None
     run_metadata: RunMetadata
     parse_result: ParseResult
     scores: TaskScore

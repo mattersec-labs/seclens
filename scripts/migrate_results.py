@@ -24,6 +24,13 @@ def migrate_jsonl(path: Path, dry_run: bool = False) -> tuple[int, int]:
     migrated = 0
     new_lines = []
 
+    # First pass: build category lookup from positive tasks
+    category_lookup: dict[str, str] = {}
+    for line in lines:
+        data = json.loads(line)
+        if data.get("task_type") == "true_positive" and data.get("task_category"):
+            category_lookup[data["task_id"]] = data["task_category"]
+
     for line in lines:
         data = json.loads(line)
         meta = data.get("run_metadata", {})
@@ -32,6 +39,23 @@ def migrate_jsonl(path: Path, dry_run: bool = False) -> tuple[int, int]:
         if isinstance(layer, int) and layer in LAYER_MAP:
             meta["layer"] = LAYER_MAP[layer]
             migrated += 1
+
+        # Add paired_with field if missing
+        if "paired_with" not in data:
+            # Infer from task_id convention: CVE-XXXX-postpatch → CVE-XXXX
+            task_id = data.get("task_id", "")
+            if task_id.endswith("-postpatch"):
+                data["paired_with"] = task_id.removesuffix("-postpatch")
+            else:
+                data["paired_with"] = None
+            migrated += 1
+
+        # Backfill task_category for post-patch tasks from paired positive
+        if not data.get("task_category") and data.get("paired_with"):
+            paired_cat = category_lookup.get(data["paired_with"])
+            if paired_cat:
+                data["task_category"] = paired_cat
+                migrated += 1
 
         new_lines.append(json.dumps(data, separators=(",", ":")))
 

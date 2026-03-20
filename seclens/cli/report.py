@@ -127,15 +127,22 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
         from seclens.scoring.model_report import _compute_group_breakdowns
         from seclens.schemas.task import TaskType
 
-        positive_results = [r for r in results if r.task_type == TaskType.TRUE_POSITIVE]
+        # Resolve categories via paired_with for tasks missing them
+        category_lookup = {r.task_id: r.task_category for r in results if r.task_category}
+
+        def _resolve_category(r):
+            if r.task_category:
+                return r.task_category
+            if r.paired_with and r.paired_with in category_lookup:
+                return category_lookup[r.paired_with]
+            return "uncategorized"
+
         negative_results = [r for r in results if r.task_type != TaskType.TRUE_POSITIVE]
 
-        by_category = _compute_group_breakdowns(
-            positive_results, lambda r: r.task_category or "uncategorized",
-        )
+        by_category = _compute_group_breakdowns(results, _resolve_category)
         if by_category:
             console.print()
-            console.print("[bold]Per Vulnerability Category[/bold] [dim](true positive tasks)[/dim]")
+            console.print("[bold]Per Vulnerability Category[/bold]")
             vcat_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
             vcat_table.add_column("Category", style="cyan")
             vcat_table.add_column("Tasks", justify="right", style="grey74")
@@ -153,12 +160,10 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
                 )
             console.print(vcat_table)
 
-        by_language = _compute_group_breakdowns(
-            positive_results, lambda r: r.task_language,
-        )
+        by_language = _compute_group_breakdowns(results, lambda r: r.task_language)
         if by_language:
             console.print()
-            console.print("[bold]Per Language[/bold] [dim](true positive tasks)[/dim]")
+            console.print("[bold]Per Language[/bold]")
             lang_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
             lang_table.add_column("Language", style="cyan")
             lang_table.add_column("Tasks", justify="right", style="grey74")
@@ -175,9 +180,7 @@ def _print_single_role(report: RoleReport, results: list | None = None) -> None:
                 )
             console.print(lang_table)
 
-        by_postpatch = _compute_group_breakdowns(
-            negative_results, lambda r: r.task_category or "uncategorized",
-        )
+        by_postpatch = _compute_group_breakdowns(negative_results, _resolve_category)
         if by_postpatch:
             console.print()
             console.print("[bold]Post-Patch & Negative Tasks[/bold] [dim](verdict accuracy)[/dim]")

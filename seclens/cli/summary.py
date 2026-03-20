@@ -97,7 +97,7 @@ def _print_terminal_report(report: ModelReport) -> None:
     # Per vulnerability category (true_positive tasks only)
     if report.by_category:
         console.print()
-        console.print("[bold]Per Vulnerability Category[/bold] [dim](true positive tasks)[/dim]")
+        console.print("[bold]Per Vulnerability Category[/bold] ")
         cat_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
         cat_table.add_column("Category", style="cyan")
         cat_table.add_column("Tasks", justify="right", style="grey74")
@@ -118,7 +118,7 @@ def _print_terminal_report(report: ModelReport) -> None:
     # Per language (true_positive tasks only)
     if report.by_language:
         console.print()
-        console.print("[bold]Per Language[/bold] [dim](true positive tasks)[/dim]")
+        console.print("[bold]Per Language[/bold] ")
         lang_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
         lang_table.add_column("Language", style="cyan")
         lang_table.add_column("Tasks", justify="right", style="grey74")
