@@ -80,10 +80,10 @@ def report_command(
             output.write_text(report.model_dump_json(indent=2))
             console.print(f"[green]Role report written to {output}[/green]")
         else:
-            _print_single_role(report)
+            _print_single_role(report, results)
 
 
-def _print_single_role(report: RoleReport) -> None:
+def _print_single_role(report: RoleReport, results: list | None = None) -> None:
     """Print a single role report to the terminal."""
     grade_color = _GRADE_COLORS.get(report.grade, "white")
 
@@ -103,7 +103,7 @@ def _print_single_role(report: RoleReport) -> None:
         border_style=grade_color,
     ))
 
-    # Category breakdown
+    # Dimension category breakdown
     console.print()
     cat_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
     cat_table.add_column("Category", style="cyan")
@@ -121,6 +121,82 @@ def _print_single_role(report: RoleReport) -> None:
         )
 
     console.print(cat_table)
+
+    # Per vulnerability category and per language breakdowns
+    if results:
+        from seclens.scoring.model_report import _compute_group_breakdowns
+        from seclens.schemas.task import TaskType
+
+        positive_results = [r for r in results if r.task_type == TaskType.TRUE_POSITIVE]
+        negative_results = [r for r in results if r.task_type != TaskType.TRUE_POSITIVE]
+
+        by_category = _compute_group_breakdowns(
+            positive_results, lambda r: r.task_category or "uncategorized",
+        )
+        if by_category:
+            console.print()
+            console.print("[bold]Per Vulnerability Category[/bold] [dim](true positive tasks)[/dim]")
+            vcat_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
+            vcat_table.add_column("Category", style="cyan")
+            vcat_table.add_column("Tasks", justify="right", style="grey74")
+            vcat_table.add_column("Recall", justify="right", style="grey74")
+            vcat_table.add_column("Precision", justify="right", style="grey74")
+            vcat_table.add_column("F1", justify="right", style="grey74")
+            vcat_table.add_column("CWE Acc", justify="right", style="grey74")
+            vcat_table.add_column("IoU", justify="right", style="grey74")
+            vcat_table.add_column("Actionable", justify="right", style="grey74")
+            for name, bd in sorted(by_category.items()):
+                vcat_table.add_row(
+                    name, str(bd.task_count),
+                    f"{bd.recall:.2f}", f"{bd.precision:.2f}", f"{bd.f1:.2f}",
+                    f"{bd.cwe_accuracy:.2f}", f"{bd.mean_location_iou:.2f}", f"{bd.actionable_rate:.2f}",
+                )
+            console.print(vcat_table)
+
+        by_language = _compute_group_breakdowns(
+            positive_results, lambda r: r.task_language,
+        )
+        if by_language:
+            console.print()
+            console.print("[bold]Per Language[/bold] [dim](true positive tasks)[/dim]")
+            lang_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
+            lang_table.add_column("Language", style="cyan")
+            lang_table.add_column("Tasks", justify="right", style="grey74")
+            lang_table.add_column("Recall", justify="right", style="grey74")
+            lang_table.add_column("Precision", justify="right", style="grey74")
+            lang_table.add_column("F1", justify="right", style="grey74")
+            lang_table.add_column("CWE Acc", justify="right", style="grey74")
+            lang_table.add_column("IoU", justify="right", style="grey74")
+            for name, bd in sorted(by_language.items()):
+                lang_table.add_row(
+                    name, str(bd.task_count),
+                    f"{bd.recall:.2f}", f"{bd.precision:.2f}", f"{bd.f1:.2f}",
+                    f"{bd.cwe_accuracy:.2f}", f"{bd.mean_location_iou:.2f}",
+                )
+            console.print(lang_table)
+
+        by_postpatch = _compute_group_breakdowns(
+            negative_results, lambda r: r.task_category or "uncategorized",
+        )
+        if by_postpatch:
+            console.print()
+            console.print("[bold]Post-Patch & Negative Tasks[/bold] [dim](verdict accuracy)[/dim]")
+            pp_table = Table(show_header=True, header_style="bold magenta", border_style="grey35")
+            pp_table.add_column("Category", style="cyan")
+            pp_table.add_column("Tasks", justify="right", style="grey74")
+            pp_table.add_column("Verdict Acc", justify="right", style="grey74")
+            for name, bd in sorted(by_postpatch.items()):
+                pp_table.add_row(name, str(bd.task_count), f"{bd.recall:.2f}")
+            console.print(pp_table)
+
+        # Legend
+        console.print()
+        console.print("[dim]Recall: % of real vulnerabilities detected | "
+                      "Precision: % of flagged findings that are real | "
+                      "F1: balanced precision/recall[/dim]")
+        console.print("[dim]CWE Acc: correct vulnerability type identification | "
+                      "IoU: location precision (0-1) | "
+                      "Actionable: complete findings (verdict + CWE + location)[/dim]")
 
     # Excluded dimensions — show human-readable names
     if report.excluded_dimensions:

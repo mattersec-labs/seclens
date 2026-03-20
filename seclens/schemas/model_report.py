@@ -43,9 +43,10 @@ class ModelReport(BaseModel):
     # All 35 raw dimensions
     dimensions: dict[str, float]
 
-    # Breakdowns
+    # Breakdowns (true_positive tasks only for category/language)
     by_category: dict[str, GroupBreakdown]
     by_language: dict[str, GroupBreakdown]
+    by_postpatch: dict[str, GroupBreakdown]
 
     # Metadata
     generated_at: str

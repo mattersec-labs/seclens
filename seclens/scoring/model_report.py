@@ -38,11 +38,24 @@ def generate_model_report(
     # Round to 4 decimal places
     dimensions = {k: round(v, 4) for k, v in dimensions.items()}
 
-    # Per-category breakdowns
-    by_category = _compute_group_breakdowns(results, lambda r: r.task_category or "uncategorized")
+    # Split results by task type
+    positive_results = [r for r in results if r.task_type == TaskType.TRUE_POSITIVE]
+    negative_results = [r for r in results if r.task_type != TaskType.TRUE_POSITIVE]
 
-    # Per-language breakdowns
-    by_language = _compute_group_breakdowns(results, lambda r: r.task_language)
+    # Per-category breakdowns (true_positive only)
+    by_category = _compute_group_breakdowns(
+        positive_results, lambda r: r.task_category or "uncategorized",
+    )
+
+    # Per-language breakdowns (true_positive only)
+    by_language = _compute_group_breakdowns(
+        positive_results, lambda r: r.task_language,
+    )
+
+    # Post-patch / negative task breakdowns (grouped by category)
+    by_postpatch = _compute_group_breakdowns(
+        negative_results, lambda r: r.task_category or "uncategorized",
+    )
 
     errors = sum(1 for r in results if r.error is not None)
     parse_failures = sum(1 for r in results if r.parse_result.output is None and r.error is None)
@@ -60,6 +73,7 @@ def generate_model_report(
         dimensions=dimensions,
         by_category=by_category,
         by_language=by_language,
+        by_postpatch=by_postpatch,
         generated_at=datetime.now(timezone.utc).isoformat(),
         seclens_version=seclens.__version__,
     )
