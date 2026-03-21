@@ -17,6 +17,7 @@ dependencies = [
     "numpy>=2.4",
     "datasets>=4.6",
     "pyyaml>=6.0",
+    "matplotlib>=3.10.8",
 ]
 
 [project.optional-dependencies]

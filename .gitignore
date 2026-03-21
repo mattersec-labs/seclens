@@ -17,6 +17,7 @@ htmlcov/
 !bootstrap.jsonl
 out/
 .DS_Store
+.serena/
 
 # LaTeX build artifacts
 paper/*.aux
