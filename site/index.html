@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecLens — Role-Specific Evaluation of LLMs for Security Vulnerability Detection</title>
+  <meta name="description" content="Multi-stakeholder benchmark for LLM vulnerability detection. 12 models, 5 roles, 35 dimensions. The best model depends on who is asking.">
+  <link href="https://api.fontshare.com/v2/css?f[]=clash-grotesk@600,500&f[]=satoshi@400,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-secondary: #111113;
+      --bg-tertiary: #18181b;
+      --text: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #52525b;
+      --border: #27272a;
+      --accent: #fbbf24;
+      --accent-dim: rgba(251, 191, 36, 0.15);
+      --accent-glow: rgba(251, 191, 36, 0.3);
+      --grade-a: #22c55e;
+      --grade-b: #3b82f6;
+      --grade-c: #eab308;
+      --grade-d: #f97316;
+      --grade-f: #ef4444;
+      --font-display: 'Clash Grotesk', sans-serif;
+      --font-body: 'Satoshi', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: var(--accent); text-decoration: none; transition: opacity 0.3s; }
+    a:hover { opacity: 0.8; }
+
+    /* Grid Background */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+      opacity: 0.3;
+    }
+
+    /* Ambient Glow */
+    .glow-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      animation: drift 20s infinite ease-in-out;
+    }
+    .glow-orb-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-dim), transparent 70%);
+      top: -200px; left: 20%;
+      opacity: 0.12;
+    }
+    .glow-orb-2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, var(--accent-dim), transparent 70%);
+      top: 50%; right: -100px;
+      opacity: 0.08;
+      animation-delay: -7s;
+    }
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0); opacity: 0.08; }
+      50% { transform: translate(30px, -20px); opacity: 0.15; }
+    }
+
+    /* Layout */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+    section { padding: 96px 0; }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      max-width: 560px;
+      margin-bottom: 40px;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10, 10, 11, 0.95);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-display); font-weight: 600; font-size: 1.1rem;
+      color: var(--text);
+    }
+    .logo-mark {
+      width: 8px; height: 8px; border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-mark::after {
+      content: ''; width: 2px; height: 2px; background: var(--accent);
+    }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a {
+      color: var(--text-muted); font-size: 0.8rem; font-weight: 500;
+      transition: color 0.3s;
+    }
+    .nav-links a:hover { color: var(--text); opacity: 1; }
+
+    /* Hero */
+    #hero { padding: 140px 0 80px; text-align: center; }
+    .hero-label {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      color: var(--accent); letter-spacing: 0.15em;
+      text-transform: uppercase; margin-bottom: 24px;
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 600; letter-spacing: -0.04em;
+      line-height: 1.1; margin-bottom: 20px;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, #fff 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradient-shift 3s ease infinite;
+    }
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% center; }
+      50% { background-position: 100% center; }
+    }
+    .hero-sub {
+      color: var(--text-secondary); font-size: 1.1rem;
+      max-width: 520px; margin: 0 auto 48px;
+    }
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .hero-stat {
+      background: var(--bg);
+      padding: 20px 12px;
+      text-align: center;
+    }
+    .hero-stat .num {
+      font-family: var(--font-mono); font-size: 1.5rem;
+      font-weight: 600; color: var(--accent);
+    }
+    .hero-stat .lbl {
+      font-size: 0.65rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-top: 4px;
+    }
+
+    /* Callout */
+    .callout {
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      padding: 32px;
+      margin: 0 auto 64px;
+      max-width: 800px;
+      position: relative;
+    }
+    .callout::before {
+      content: ''; position: absolute; top: -1px; left: 0; right: 0;
+      height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    .callout-title {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      color: var(--accent); text-transform: uppercase;
+      letter-spacing: 0.15em; margin-bottom: 12px;
+    }
+    .callout p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; }
+    .callout strong { color: var(--text); }
+
+    /* Role Tabs */
+    .role-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .role-tab {
+      padding: 8px 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: 0.8rem; font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .role-tab:hover { border-color: var(--text-muted); color: var(--text-secondary); }
+    .role-tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a0a0b;
+      font-weight: 500;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .role-description {
+      color: var(--text-muted); font-size: 0.85rem;
+      margin-bottom: 20px; min-height: 1.4em;
+      font-style: italic;
+    }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    thead { background: var(--bg-secondary); }
+    th {
+      text-align: left; padding: 12px 16px;
+      font-family: var(--font-mono); font-weight: 400;
+      font-size: 0.7rem; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover { color: var(--text-secondary); }
+    td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr { transition: background 0.2s; }
+    tr:hover { background: var(--bg-secondary); }
+    .rank-cell {
+      font-family: var(--font-mono); font-weight: 500;
+      color: var(--text-muted); width: 40px; text-align: center;
+    }
+    .model-name { font-weight: 500; }
+    .score-cell { font-family: var(--font-mono); font-weight: 500; text-align: center; }
+    .grade-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px;
+      font-weight: 600; font-size: 0.75rem;
+      margin-right: 6px;
+    }
+    .grade-A { background: rgba(34,197,94,0.12); color: var(--grade-a); }
+    .grade-B { background: rgba(59,130,246,0.12); color: var(--grade-b); }
+    .grade-C { background: rgba(234,179,8,0.12); color: var(--grade-c); }
+    .grade-D { background: rgba(249,115,22,0.12); color: var(--grade-d); }
+    .grade-F { background: rgba(239,68,68,0.12); color: var(--grade-f); }
+    .change-up { color: var(--grade-a); font-size: 0.75rem; margin-left: 4px; }
+    .change-down { color: var(--grade-f); font-size: 0.75rem; margin-left: 4px; }
+    .change-flat { color: var(--text-muted); font-size: 0.75rem; margin-left: 4px; }
+
+    /* Grade Scale */
+    .grade-scale { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .grade-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.75rem; color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* Heatmap */
+    .heatmap-wrap { overflow-x: auto; border: 1px solid var(--border); }
+    .heatmap { display: grid; min-width: 880px; }
+    .hm-cell {
+      padding: 10px 8px; text-align: center;
+      font-size: 0.75rem; font-family: var(--font-mono);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative; cursor: default;
+    }
+    .hm-cell:last-child { border-right: none; }
+    .hm-cell.hdr {
+      font-family: var(--font-mono); font-weight: 400;
+      font-size: 0.65rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      background: var(--bg-secondary); padding: 12px 8px;
+    }
+    .hm-cell.mdl {
+      font-family: var(--font-body); font-weight: 500;
+      font-size: 0.8rem; text-align: left; padding-left: 16px;
+      color: var(--text); background: var(--bg-secondary);
+      min-width: 150px;
+    }
+    .hm-cell.dat:hover { transform: scale(1.08); z-index: 2; box-shadow: 0 0 16px var(--accent-dim); }
+    .hm-tip {
+      display: none; position: absolute; bottom: 100%; left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      padding: 6px 10px; font-size: 0.7rem; white-space: nowrap;
+      z-index: 10; pointer-events: none; color: var(--text);
+      font-family: var(--font-body);
+    }
+    .hm-cell.dat:hover .hm-tip { display: block; }
+    .hm-cell.avg { font-weight: 600; }
+
+    /* Chart Grid */
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .chart-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      padding: 24px;
+      transition: border-color 0.3s;
+    }
+    .chart-card:hover { border-color: rgba(251,191,36,0.2); }
+    .chart-card h3 { font-family: var(--font-display); font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+    .chart-card .chart-sub { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px; }
+    .chart-wrap { position: relative; width: 100%; }
+
+    /* Radar Tabs */
+    .radar-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .radar-tab {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: 0.75rem; font-weight: 500;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .radar-tab:hover { border-color: var(--text-muted); color: var(--text-secondary); }
+    .radar-tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a0a0b;
+    }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+    .stat-card { background: var(--bg); padding: 24px; }
+    .stat-card .val {
+      font-family: var(--font-mono); font-size: 1.75rem;
+      font-weight: 600; color: var(--accent);
+    }
+    .stat-card .lbl { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+    .stat-card .det { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+
+    /* Methodology */
+    .method-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+    .method-card {
+      border: 1px solid var(--border); background: var(--bg-secondary);
+      padding: 24px; position: relative; transition: border-color 0.3s;
+    }
+    .method-card:hover { border-color: rgba(251,191,36,0.2); }
+    .method-card .step {
+      font-family: var(--font-mono); font-size: 0.65rem;
+      color: var(--accent); text-transform: uppercase;
+      letter-spacing: 0.15em; margin-bottom: 12px;
+    }
+    .method-card h3 { font-family: var(--font-display); font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+    .method-card p { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; }
+
+    /* Category Table */
+    .cat-leader { color: var(--grade-a); }
+    .cat-worst { color: var(--grade-d); }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--border); padding: 48px 0; }
+    .footer-inner { text-align: center; }
+    .footer-links { display: flex; gap: 32px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+    .footer-links a { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
+    .footer-links a:hover { color: var(--text); opacity: 1; }
+    .citation-box {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      padding: 16px 24px; font-family: var(--font-mono);
+      font-size: 0.7rem; color: var(--text-muted);
+      max-width: 600px; margin: 0 auto 20px;
+      text-align: left; line-height: 1.7; white-space: pre-line;
+    }
+    .sponsors { display: flex; gap: 24px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+    .sponsors span { color: var(--text-muted); font-size: 0.75rem; }
+    .sponsors strong { color: var(--text-secondary); }
+    .copyright { color: var(--text-muted); font-size: 0.7rem; margin-top: 20px; }
+
+    /* Scroll Reveal */
+    .reveal {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .stagger-1 { transition-delay: 100ms; }
+    .stagger-2 { transition-delay: 200ms; }
+    .stagger-3 { transition-delay: 300ms; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .chart-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .hero-stats { grid-template-columns: repeat(3, 1fr); }
+      .hero-stats .hero-stat:nth-child(4),
+      .hero-stats .hero-stat:nth-child(5) { grid-column: span 1; }
+      section { padding: 64px 0; }
+      #hero { padding: 100px 0 60px; }
+    }
+    @media (max-width: 480px) {
+      .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .glow-orb { animation: none; }
+      .gradient-text { animation: none; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="glow-orb glow-orb-1"></div>
+<div class="glow-orb glow-orb-2"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo">
+      <div class="logo-mark"></div>
+      SecLens <span style="color:var(--text-muted);font-size:0.7rem;font-weight:400;margin-left:6px;">by MatterSec Labs</span>
+    </div>
+    <div class="nav-links">
+      <a href="#leaderboard">Leaderboard</a>
+      <a href="#heatmap">Categories</a>
+      <a href="#analysis">Analysis</a>
+      <a href="#radar">Roles</a>
+      <a href="#dataset">Dataset</a>
+      <a href="paper/seclens_role_specific_evaluation.pdf" target="_blank">Paper</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-label">A MatterSec Labs Benchmark</div>
+    <h1 class="hero-title">
+      The best model depends<br>on <span class="gradient-text">who is asking</span>
+    </h1>
+    <p class="hero-sub">
+      SecLens evaluates LLMs on real-world vulnerability detection through five stakeholder lenses. Decision Scores diverge by up to 31 points for the same model.
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">406</div><div class="lbl">CVE Tasks</div></div>
+      <div class="hero-stat"><div class="num">12</div><div class="lbl">Models</div></div>
+      <div class="hero-stat"><div class="num">35</div><div class="lbl">Dimensions</div></div>
+      <div class="hero-stat"><div class="num">5</div><div class="lbl">Roles</div></div>
+      <div class="hero-stat"><div class="num">31pt</div><div class="lbl">Divergence</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- KEY FINDING -->
+<div class="container">
+  <div class="callout reveal">
+    <div class="callout-title">// Key Finding</div>
+    <p>
+      <strong>Qwen3-Coder</strong> earns an <strong style="color:var(--grade-a)">A</strong> for Head of Engineering but a <strong style="color:var(--grade-d)">D</strong> for CISO.
+      <strong>Claude Haiku 4.5</strong>, ranked 8th on the leaderboard, scores <strong>2nd for CISO</strong>.
+      No single model dominates &mdash; six different models lead at least one of 8 vulnerability categories.
+    </p>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<section id="leaderboard">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">01 // Leaderboard</div>
+      <h2 class="section-title">Choose your lens</h2>
+      <p class="section-desc">Select a stakeholder role to see how model rankings shift. Same evaluation data, different priorities.</p>
+    </div>
+    <div class="reveal stagger-1">
+      <div class="grade-scale">
+        <div class="grade-item"><span class="grade-badge grade-A">A</span>&ge;75</div>
+        <div class="grade-item"><span class="grade-badge grade-B">B</span>&ge;60</div>
+        <div class="grade-item"><span class="grade-badge grade-C">C</span>&ge;50</div>
+        <div class="grade-item"><span class="grade-badge grade-D">D</span>&ge;40</div>
+        <div class="grade-item"><span class="grade-badge grade-F">F</span>&lt;40</div>
+      </div>
+      <div class="role-tabs" id="roleTabs">
+        <button class="role-tab active" data-role="leaderboard">Leaderboard</button>
+        <button class="role-tab" data-role="ciso">CISO</button>
+        <button class="role-tab" data-role="caio">CAIO</button>
+        <button class="role-tab" data-role="researcher">Researcher</button>
+        <button class="role-tab" data-role="engineering">Head of Eng.</button>
+        <button class="role-tab" data-role="ai_actor">AI as Actor</button>
+      </div>
+      <div class="role-description" id="roleDesc">Aggregate score across all 35 dimensions with equal weighting.</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="rank-cell">#</th>
+              <th>Model</th>
+              <th class="score-cell">Score</th>
+              <th class="score-cell">Grade</th>
+              <th class="score-cell">LB %</th>
+              <th class="score-cell">vs LB</th>
+            </tr>
+          </thead>
+          <tbody id="lbBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HEATMAP -->
+<section id="heatmap">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">02 // Categories</div>
+      <h2 class="section-title">No single model dominates</h2>
+      <p class="section-desc">F1 scores by model and OWASP-aligned vulnerability category. Six different models lead at least one category.</p>
+    </div>
+    <div class="reveal stagger-1">
+      <div class="heatmap-wrap"><div class="heatmap" id="heatmapGrid"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ANALYSIS -->
+<section id="analysis">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">03 // Analysis</div>
+      <h2 class="section-title">Divergence and cost</h2>
+      <p class="section-desc">Models with conservative strategies earn top grades for Engineering but fail for CISO. Spending more does not guarantee better results.</p>
+    </div>
+    <div class="chart-grid reveal stagger-1">
+      <div class="chart-card">
+        <h3>Role Divergence Index</h3>
+        <div class="chart-sub">Max - min score across 5 roles. Higher = more stakeholder-dependent.</div>
+        <div class="chart-wrap"><canvas id="rdiChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Cost vs. Quality</h3>
+        <div class="chart-sub">Cost per task vs. leaderboard score. 8 models with cost tracking.</div>
+        <div class="chart-wrap"><canvas id="costChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RADAR -->
+<section id="radar">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">04 // Weight Profiles</div>
+      <h2 class="section-title">Different priorities, different outcomes</h2>
+      <p class="section-desc">Each role weights 7 dimension categories differently. The same 35 dimensions, filtered through distinct organizational needs.</p>
+    </div>
+    <div class="reveal stagger-1">
+      <div class="radar-tabs" id="radarTabs">
+        <button class="radar-tab active" data-roles="all">All Roles</button>
+        <button class="radar-tab" data-roles="ciso">CISO</button>
+        <button class="radar-tab" data-roles="caio">CAIO</button>
+        <button class="radar-tab" data-roles="researcher">Researcher</button>
+        <button class="radar-tab" data-roles="engineering">Head of Eng.</button>
+        <button class="radar-tab" data-roles="ai_actor">AI as Actor</button>
+      </div>
+      <div class="chart-card" style="max-width:540px; margin:0 auto;">
+        <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DATASET -->
+<section id="dataset">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">05 // Dataset</div>
+      <h2 class="section-title">Real-world CVE tasks</h2>
+      <p class="section-desc">Sourced from confirmed CVEs in open-source projects across 10 languages and 8 OWASP-aligned categories.</p>
+    </div>
+    <div class="stats-grid reveal stagger-1">
+      <div class="stat-card"><div class="val">406</div><div class="lbl">Total Tasks</div><div class="det">203 true positive + 203 post-patch</div></div>
+      <div class="stat-card"><div class="val">93</div><div class="lbl">Source Projects</div><div class="det">Open-source repos with confirmed CVEs</div></div>
+      <div class="stat-card"><div class="val">10</div><div class="lbl">Languages</div><div class="det">Python, JS, Go, Ruby, Rust, Java, PHP, C, C++, C#</div></div>
+      <div class="stat-card"><div class="val">8</div><div class="lbl">Categories</div><div class="det">OWASP Top 10:2021 aligned</div></div>
+      <div class="stat-card"><div class="val">4</div><div class="lbl">Severity Levels</div><div class="det">Critical (25), High (74), Medium (83), Low (21)</div></div>
+      <div class="stat-card"><div class="val">35</div><div class="lbl">Dimensions</div><div class="det">Detection, Coverage, Reasoning, Efficiency, Tool-Use, Risk, Robustness</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- METHODOLOGY -->
+<section id="methodology">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">06 // Methodology</div>
+      <h2 class="section-title">From CVE tasks to role-specific grades</h2>
+    </div>
+    <div class="method-grid reveal stagger-1">
+      <div class="method-card">
+        <div class="step">Step 01</div>
+        <h3>Evaluate</h3>
+        <p>Models tested on 406 CVE tasks in two layers: Code-in-Prompt (single-turn reasoning) and Tool-Use (sandboxed codebase navigation).</p>
+      </div>
+      <div class="method-card">
+        <div class="step">Step 02</div>
+        <h3>Measure</h3>
+        <p>Each task scored on verdict (1pt), CWE classification (+1pt), and location accuracy (+1pt IoU). 35 aggregate dimensions computed across 7 categories.</p>
+      </div>
+      <div class="method-card">
+        <div class="step">Step 03</div>
+        <h3>Normalize</h3>
+        <p>Dimensions normalized to [0,1] using four strategies: ratio, MCC, lower-is-better, higher-is-better. Fixed reference caps eliminate cohort artifacts.</p>
+      </div>
+      <div class="method-card">
+        <div class="step">Step 04</div>
+        <h3>Score per Role</h3>
+        <p>Five YAML weight profiles select 12-16 dimensions each. Decision Score = weighted sum / available weight &times; 100, yielding grades A through F.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VULN CATEGORIES -->
+<section id="categories">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">07 // Vulnerability Categories</div>
+      <h2 class="section-title">OWASP-aligned coverage</h2>
+    </div>
+    <div class="table-wrap reveal stagger-1">
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th class="score-cell">Tasks</th>
+            <th>OWASP</th>
+            <th>Leader (F1)</th>
+            <th>Worst (F1)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="model-name">Broken Access Control</td><td class="score-cell">82</td><td>A01:2021</td><td class="cat-leader">Kimi K2.5 (0.667)</td><td class="cat-worst">Qwen3-Coder (0.128)</td></tr>
+          <tr><td class="model-name">Cryptographic Failures</td><td class="score-cell">64</td><td>A02:2021</td><td class="cat-leader">Gemini 3 Flash (0.676)</td><td class="cat-worst">Qwen3-Coder (0.118)</td></tr>
+          <tr><td class="model-name">Injection</td><td class="score-cell">62</td><td>A03:2021</td><td class="cat-leader">Gemini 3.1 Pro (0.632)</td><td class="cat-worst">Qwen3-Coder (0.062)</td></tr>
+          <tr><td class="model-name">Improper Input Validation</td><td class="score-cell">58</td><td>Extended</td><td class="cat-leader">Haiku 4.5 (0.675)</td><td class="cat-worst">Qwen3-Coder (0.125)</td></tr>
+          <tr><td class="model-name">SSRF</td><td class="score-cell">46</td><td>A10:2021</td><td class="cat-leader">Sonnet 4.6 (0.690)</td><td class="cat-worst">Qwen3-Coder (0.512)</td></tr>
+          <tr><td class="model-name">Authentication Failures</td><td class="score-cell">38</td><td>A07:2021</td><td class="cat-leader">Kimi K2.5 (0.585)</td><td class="cat-worst">Opus 4.6 (0.000)</td></tr>
+          <tr><td class="model-name">Data Integrity Failures</td><td class="score-cell">36</td><td>A08:2021</td><td class="cat-leader">Gemini 3 Flash (0.680)</td><td class="cat-worst">Qwen3-Coder (0.200)</td></tr>
+          <tr><td class="model-name">Memory Safety</td><td class="score-cell">20</td><td>Extended</td><td class="cat-leader">Haiku 4.5 (0.690)</td><td class="cat-worst">Qwen3-Coder (0.308)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container footer-inner">
+    <div class="footer-links">
+      <a href="paper/seclens_role_specific_evaluation.pdf" target="_blank">Read the Paper</a>
+      <a href="https://github.com/mattersec-labs/seclens/tree/main/docs" target="_blank">Documentation</a>
+    </div>
+    <div class="citation-box">@article{halder2026seclens,
+  title={SecLens: Role-Specific Evaluation of LLMs
+         for Security Vulnerability Detection},
+  author={Halder, Subho and Saxena, Siddharth
+          and Shrish, Kashinath Kadaba
+          and M, Thiyagarajan},
+  year={2026}
+}</div>
+    <div class="sponsors">
+      <span>Sponsored by <strong>Appknox</strong></span>
+      <span>and <strong>Kalmantic Labs</strong></span>
+    </div>
+    <div class="copyright">SecLens &copy; 2026 MatterSec Labs</div>
+  </div>
+</footer>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const MODELS = [
+  { id:'g3f', name:'Gemini 3 Flash Preview', short:'Gemini 3 Flash', leaderboard:49.6, ciso:73.3, caio:68.1, researcher:71.0, engineering:66.2, ai_actor:87.5, cost:0.039, hasCost:true },
+  { id:'g31p', name:'Gemini 3.1 Pro Preview', short:'Gemini 3.1 Pro', leaderboard:48.2, ciso:67.5, caio:67.0, researcher:65.7, engineering:63.8, ai_actor:85.7, cost:0.111, hasCost:true },
+  { id:'s46', name:'Claude Sonnet 4.6', short:'Sonnet 4.6', leaderboard:47.6, ciso:65.7, caio:68.4, researcher:64.2, engineering:73.9, ai_actor:85.6, cost:0.017, hasCost:true },
+  { id:'k25', name:'Kimi K2.5', short:'Kimi K2.5', leaderboard:46.8, ciso:68.0, caio:67.8, researcher:67.0, engineering:65.1, ai_actor:86.4, cost:null, hasCost:false },
+  { id:'g25p', name:'Gemini 2.5 Pro', short:'Gemini 2.5 Pro', leaderboard:46.2, ciso:66.2, caio:67.9, researcher:65.2, engineering:71.3, ai_actor:86.3, cost:0.033, hasCost:true },
+  { id:'grok', name:'Grok Code Fast 1', short:'Grok Fast 1', leaderboard:44.1, ciso:58.7, caio:67.5, researcher:60.2, engineering:73.0, ai_actor:83.8, cost:null, hasCost:false },
+  { id:'g25f', name:'Gemini 2.5 Flash', short:'Gemini 2.5 Flash', leaderboard:44.3, ciso:61.3, caio:67.9, researcher:61.1, engineering:72.3, ai_actor:84.9, cost:0.008, hasCost:true },
+  { id:'h45', name:'Claude Haiku 4.5', short:'Haiku 4.5', leaderboard:43.8, ciso:71.2, caio:69.1, researcher:68.2, engineering:73.3, ai_actor:85.9, cost:0.005, hasCost:true },
+  { id:'o46', name:'Claude Opus 4.6', short:'Opus 4.6', leaderboard:41.7, ciso:51.0, caio:65.6, researcher:55.6, engineering:72.9, ai_actor:80.2, cost:0.019, hasCost:true },
+  { id:'q3p', name:'Qwen3-Coder-Plus', short:'Qwen3-Plus', leaderboard:41.2, ciso:51.1, caio:68.0, researcher:54.2, engineering:76.9, ai_actor:81.2, cost:null, hasCost:false },
+  { id:'gpt', name:'GPT-5.4', short:'GPT-5.4', leaderboard:39.9, ciso:48.4, caio:67.0, researcher:54.1, engineering:76.7, ai_actor:79.2, cost:0.007, hasCost:true },
+  { id:'q3c', name:'Qwen3-Coder', short:'Qwen3-Coder', leaderboard:37.3, ciso:45.2, caio:64.0, researcher:52.9, engineering:76.3, ai_actor:77.9, cost:null, hasCost:false }
+];
+
+const ROLE_DESC = {
+  leaderboard: 'Aggregate score across all 35 dimensions with equal weighting.',
+  ciso: '"Can I trust this model in my security program?" Severity-weighted recall, critical miss rate, no blind spots.',
+  caio: '"Which model balances cost and capability?" MCC per dollar, autonomous completion, tool mastery.',
+  researcher: '"Does the model understand vulnerability mechanics?" CWE accuracy, localization precision, evidence chains.',
+  engineering: '"Will this help or hurt my team\'s velocity?" Precision, actionable findings, speed, low cost.',
+  ai_actor: '"Can this agent operate without supervision?" Parse reliability, graceful degradation, autonomous completion.'
+};
+
+const CAT_NAMES = ['BAC','Crypto','Auth','Input','Inj.','Mem.','SSRF','D.Int.'];
+const CAT_FULL = ['Broken Access Control','Cryptographic Failures','Auth Failures','Input Validation','Injection','Memory Safety','SSRF','Data Integrity'];
+const HM_DATA = [
+  {name:'Gemini 3 Flash', s:[.647,.676,.444,.627,.618,.667,.667,.680], avg:.628},
+  {name:'Haiku 4.5',      s:[.586,.633,.545,.675,.507,.690,.667,.679], avg:.623},
+  {name:'Gemini 3.1 Pro', s:[.660,.667,.578,.618,.632,.583,.600,.500], avg:.605},
+  {name:'Kimi K2.5',      s:[.667,.567,.585,.649,.517,.609,.644,.529], avg:.596},
+  {name:'Gemini 2.5 Pro', s:[.635,.562,.579,.627,.585,.526,.643,.514], avg:.584},
+  {name:'Sonnet 4.6',     s:[.590,.625,.514,.571,.518,.526,.690,.537], avg:.571},
+  {name:'Gemini 2.5 Flash',s:[.457,.500,.191,.638,.603,.640,.623,.625], avg:.535},
+  {name:'Grok Fast 1',    s:[.530,.367,.529,.561,.440,.588,.667,.414], avg:.512},
+  {name:'Opus 4.6',       s:[.231,.491,.000,.408,.263,.476,.689,.333], avg:.361},
+  {name:'Qwen3-Plus',     s:[.310,.216,.320,.417,.350,.400,.682,.320], avg:.377},
+  {name:'GPT-5.4',        s:[.182,.222,.333,.256,.171,.353,.609,.214], avg:.293},
+  {name:'Qwen3-Coder',    s:[.128,.118,.100,.125,.062,.308,.512,.200], avg:.194}
+];
+
+const RDI = [
+  {name:'Qwen3-Coder',rdi:31.1,best:'AI Actor',worst:'CISO'},
+  {name:'GPT-5.4',rdi:30.8,best:'AI Actor',worst:'CISO'},
+  {name:'Qwen3-Plus',rdi:30.1,best:'AI Actor',worst:'CISO'},
+  {name:'Opus 4.6',rdi:29.2,best:'AI Actor',worst:'CISO'},
+  {name:'Grok Fast 1',rdi:25.1,best:'AI Actor',worst:'CISO'},
+  {name:'Gemini 2.5 Flash',rdi:23.6,best:'AI Actor',worst:'Researcher'},
+  {name:'Gemini 3.1 Pro',rdi:21.9,best:'AI Actor',worst:'Eng.'},
+  {name:'Kimi K2.5',rdi:21.3,best:'AI Actor',worst:'Eng.'},
+  {name:'Gemini 3 Flash',rdi:21.3,best:'AI Actor',worst:'Eng.'},
+  {name:'Gemini 2.5 Pro',rdi:20.1,best:'AI Actor',worst:'Researcher'},
+  {name:'Sonnet 4.6',rdi:19.9,best:'AI Actor',worst:'Researcher'},
+  {name:'Haiku 4.5',rdi:16.8,best:'AI Actor',worst:'CAIO'}
+];
+
+const RADAR_LABELS = ['Detection','Coverage','Reasoning','Efficiency','Tool-Use','Risk & Severity','Robustness'];
+const ROLE_WEIGHTS = {
+  ciso:       {w:[34,15,4,2,0,18,7], color:'#ef4444', label:'CISO'},
+  caio:       {w:[16,4,1,19,15,5,20], color:'#f97316', label:'CAIO'},
+  researcher: {w:[39,16,21,0,0,0,4], color:'#eab308', label:'Researcher'},
+  engineering:{w:[35,7,0,22,0,0,16], color:'#22c55e', label:'Head of Eng.'},
+  ai_actor:   {w:[17,7,2,0,18,0,36], color:'#8b5cf6', label:'AI as Actor'}
+};
+
+// ============================================================
+// UTILS
+// ============================================================
+function grade(s) { return s>=75?'A':s>=60?'B':s>=50?'C':s>=40?'D':'F'; }
+function gradeColor(g) { return {A:'#22c55e',B:'#3b82f6',C:'#eab308',D:'#f97316',F:'#ef4444'}[g]||'#52525b'; }
+function hmColor(v) {
+  if(v===0) return 'rgba(239,68,68,0.55)';
+  if(v<.2) return 'rgba(239,68,68,'+(0.25+v)+')';
+  if(v<.4) return 'rgba(249,115,22,'+(0.15+v*0.8)+')';
+  if(v<.55) return 'rgba(234,179,8,'+(0.1+v*0.6)+')';
+  if(v<.65) return 'rgba(132,204,22,'+(0.1+v*0.5)+')';
+  return 'rgba(34,197,94,'+(0.15+v*0.5)+')';
+}
+function hmText(v) { return v<.3?'#fca5a5':v<.5?'#fde68a':'#bbf7d0'; }
+
+// ============================================================
+// LEADERBOARD
+// ============================================================
+const lbRanks = {};
+[...MODELS].sort((a,b)=>b.leaderboard-a.leaderboard).forEach((m,i)=>{lbRanks[m.id]=i+1;});
+
+function renderLB(role) {
+  document.querySelectorAll('.role-tab').forEach(t=>t.classList.toggle('active',t.dataset.role===role));
+  document.getElementById('roleDesc').textContent = ROLE_DESC[role];
+
+  const sorted = [...MODELS].sort((a,b)=>{
+    const sa = role==='leaderboard'?a.leaderboard:a[role];
+    const sb = role==='leaderboard'?b.leaderboard:b[role];
+    return sb-sa;
+  });
+
+  const tbody = document.getElementById('lbBody');
+  // Build rows safely using DOM methods
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  sorted.forEach((m,i)=>{
+    const score = role==='leaderboard'?m.leaderboard:m[role];
+    const g = role==='leaderboard'?'':grade(score);
+    const lbR = lbRanks[m.id];
+    const curR = i+1;
+    const diff = lbR - curR;
+
+    const tr = document.createElement('tr');
+
+    // Rank
+    const tdRank = document.createElement('td');
+    tdRank.className = 'rank-cell';
+    tdRank.textContent = curR;
+    tr.appendChild(tdRank);
+
+    // Model name
+    const tdName = document.createElement('td');
+    tdName.className = 'model-name';
+    tdName.textContent = m.name;
+    tr.appendChild(tdName);
+
+    // Score
+    const tdScore = document.createElement('td');
+    tdScore.className = 'score-cell';
+    tdScore.style.color = g ? gradeColor(g) : 'var(--accent)';
+    tdScore.textContent = role==='leaderboard' ? score.toFixed(1)+'%' : score.toFixed(1);
+    tr.appendChild(tdScore);
+
+    // Grade
+    const tdGrade = document.createElement('td');
+    tdGrade.className = 'score-cell';
+    if (g) {
+      const badge = document.createElement('span');
+      badge.className = 'grade-badge grade-' + g;
+      badge.textContent = g;
+      tdGrade.appendChild(badge);
+    } else {
+      tdGrade.textContent = '\u2014';
+      tdGrade.style.color = 'var(--text-muted)';
+    }
+    tr.appendChild(tdGrade);
+
+    // LB %
+    const tdLB = document.createElement('td');
+    tdLB.className = 'score-cell';
+    tdLB.style.color = 'var(--text-muted)';
+    tdLB.textContent = m.leaderboard.toFixed(1) + '%';
+    tr.appendChild(tdLB);
+
+    // vs LB
+    const tdVs = document.createElement('td');
+    tdVs.className = 'score-cell';
+    if (role !== 'leaderboard') {
+      const span = document.createElement('span');
+      if (diff > 0) { span.className = 'change-up'; span.textContent = '\u25B2' + diff; }
+      else if (diff < 0) { span.className = 'change-down'; span.textContent = '\u25BC' + Math.abs(diff); }
+      else { span.className = 'change-flat'; span.textContent = '\u2014'; }
+      tdVs.appendChild(span);
+    }
+    tr.appendChild(tdVs);
+
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('roleTabs').addEventListener('click', e => {
+  if (e.target.classList.contains('role-tab')) renderLB(e.target.dataset.role);
+});
+
+// ============================================================
+// HEATMAP
+// ============================================================
+function renderHeatmap() {
+  const grid = document.getElementById('heatmapGrid');
+  const cols = CAT_NAMES.length + 2;
+  grid.style.gridTemplateColumns = 'minmax(130px,170px) repeat(' + CAT_NAMES.length + ',1fr) minmax(55px,75px)';
+
+  // Clear existing content
+  while (grid.firstChild) grid.removeChild(grid.firstChild);
+
+  // Header
+  const emptyHdr = document.createElement('div');
+  emptyHdr.className = 'hm-cell hdr';
+  grid.appendChild(emptyHdr);
+
+  CAT_NAMES.forEach((c,i) => {
+    const h = document.createElement('div');
+    h.className = 'hm-cell hdr';
+    h.textContent = c;
+    h.title = CAT_FULL[i];
+    grid.appendChild(h);
+  });
+
+  const avgHdr = document.createElement('div');
+  avgHdr.className = 'hm-cell hdr';
+  avgHdr.textContent = 'Avg';
+  grid.appendChild(avgHdr);
+
+  // Data rows
+  HM_DATA.forEach(model => {
+    const label = document.createElement('div');
+    label.className = 'hm-cell mdl';
+    label.textContent = model.name;
+    grid.appendChild(label);
+
+    model.s.forEach((s,i) => {
+      const cell = document.createElement('div');
+      cell.className = 'hm-cell dat';
+      cell.style.background = hmColor(s);
+      cell.style.color = hmText(s);
+      cell.textContent = s.toFixed(3);
+
+      const tip = document.createElement('div');
+      tip.className = 'hm-tip';
+      tip.textContent = model.name + ' \u2014 ' + CAT_FULL[i] + ': F1 = ' + s.toFixed(3);
+      cell.appendChild(tip);
+
+      grid.appendChild(cell);
+    });
+
+    const avgCell = document.createElement('div');
+    avgCell.className = 'hm-cell dat avg';
+    avgCell.style.background = hmColor(model.avg);
+    avgCell.style.color = hmText(model.avg);
+    avgCell.textContent = model.avg.toFixed(3);
+    grid.appendChild(avgCell);
+  });
+}
+
+// ============================================================
+// RDI CHART
+// ============================================================
+function createRdiChart() {
+  const ctx = document.getElementById('rdiChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: RDI.map(d=>d.name),
+      datasets: [{
+        data: RDI.map(d=>d.rdi),
+        backgroundColor: RDI.map(d=>d.rdi>=28?'rgba(239,68,68,0.6)':d.rdi>=22?'rgba(234,179,8,0.6)':'rgba(59,130,246,0.6)'),
+        borderColor: RDI.map(d=>d.rdi>=28?'#ef4444':d.rdi>=22?'#eab308':'#3b82f6'),
+        borderWidth: 1, borderRadius: 0
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { afterLabel: ctx => { const d=RDI[ctx.dataIndex]; return 'Best: '+d.best+'\nWorst: '+d.worst; } },
+          backgroundColor:'#18181b', titleColor:'#fafafa', bodyColor:'#a1a1aa',
+          borderColor:'#27272a', borderWidth:1, padding:10, cornerRadius:0
+        }
+      },
+      scales: {
+        x: { grid:{color:'rgba(39,39,42,0.5)'}, ticks:{color:'#a1a1aa',font:{family:"'JetBrains Mono'"}}, title:{display:true,text:'RDI (points)',color:'#52525b'} },
+        y: { grid:{display:false}, ticks:{color:'#a1a1aa',font:{size:11}} }
+      }
+    }
+  });
+  document.getElementById('rdiChart').parentElement.style.height = '380px';
+}
+
+// ============================================================
+// COST CHART
+// ============================================================
+function createCostChart() {
+  const ctx = document.getElementById('costChart').getContext('2d');
+  const cm = MODELS.filter(m=>m.hasCost);
+  new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        data: cm.map(m=>({x:m.cost,y:m.leaderboard,label:m.short})),
+        backgroundColor: 'rgba(251,191,36,0.6)',
+        borderColor: '#fbbf24',
+        borderWidth: 2, pointRadius: 7, pointHoverRadius: 10
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => { const d=ctx.raw; return d.label+': $'+d.x.toFixed(3)+'/task, '+d.y.toFixed(1)+'%'; } },
+          backgroundColor:'#18181b', titleColor:'#fafafa', bodyColor:'#a1a1aa',
+          borderColor:'#27272a', borderWidth:1, padding:10, cornerRadius:0
+        }
+      },
+      scales: {
+        x: { type:'logarithmic', grid:{color:'rgba(39,39,42,0.5)'}, ticks:{color:'#a1a1aa',font:{family:"'JetBrains Mono'"},callback:v=>'$'+v.toFixed(3)}, title:{display:true,text:'Cost per task (log)',color:'#52525b'} },
+        y: { grid:{color:'rgba(39,39,42,0.5)'}, ticks:{color:'#a1a1aa',font:{family:"'JetBrains Mono'"},callback:v=>v+'%'}, title:{display:true,text:'Leaderboard Score',color:'#52525b'}, min:35, max:55 }
+      }
+    },
+    plugins: [{
+      afterDraw: chart => {
+        const c = chart.ctx;
+        c.font = '10px Satoshi, sans-serif';
+        c.fillStyle = '#a1a1aa';
+        c.textAlign = 'center';
+        chart.data.datasets[0].data.forEach((d,i) => {
+          const meta = chart.getDatasetMeta(0).data[i];
+          if (meta) c.fillText(d.label, meta.x, meta.y - 12);
+        });
+      }
+    }]
+  });
+  document.getElementById('costChart').parentElement.style.height = '380px';
+}
+
+// ============================================================
+// RADAR CHART
+// ============================================================
+let radarChart;
+function createRadar(sel) {
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  if (radarChart) radarChart.destroy();
+  const roles = sel==='all' ? Object.keys(ROLE_WEIGHTS) : [sel];
+  const datasets = roles.map(k => {
+    const r = ROLE_WEIGHTS[k];
+    return { label:r.label, data:r.w, borderColor:r.color, backgroundColor:r.color+'18', borderWidth:2, pointBackgroundColor:r.color, pointRadius:4, pointHoverRadius:6 };
+  });
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: { labels: RADAR_LABELS, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display:roles.length>1, position:'bottom', labels:{color:'#a1a1aa',padding:14,usePointStyle:true} },
+        tooltip: { backgroundColor:'#18181b', titleColor:'#fafafa', bodyColor:'#a1a1aa', borderColor:'#27272a', borderWidth:1, padding:10, cornerRadius:0 }
+      },
+      scales: {
+        r: {
+          grid:{color:'rgba(39,39,42,0.4)'}, angleLines:{color:'rgba(39,39,42,0.4)'},
+          ticks:{color:'#52525b',backdropColor:'transparent',font:{family:"'JetBrains Mono'",size:9}},
+          pointLabels:{color:'#a1a1aa',font:{size:10}},
+          suggestedMin:0, suggestedMax:40
+        }
+      }
+    }
+  });
+}
+document.getElementById('radarTabs').addEventListener('click', e => {
+  if (e.target.classList.contains('radar-tab')) {
+    document.querySelectorAll('.radar-tab').forEach(t=>t.classList.remove('active'));
+    e.target.classList.add('active');
+    createRadar(e.target.dataset.roles);
+  }
+});
+
+// ============================================================
+// SCROLL REVEAL
+// ============================================================
+function initReveal() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  renderLB('leaderboard');
+  renderHeatmap();
+  createRdiChart();
+  createCostChart();
+  createRadar('all');
+  initReveal();
+});
+</script>
+
+</body>
+</html>
