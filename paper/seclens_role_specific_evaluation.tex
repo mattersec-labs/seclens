@@ -178,7 +178,7 @@ Figure~\ref{fig:radar} visualizes the category-level weight distribution for eac
 \subsection{Evaluation Layers}
 \label{sec:layers}
 
-\framework builds on the \seclens benchmark~\citep{halder2025seclens}, which evaluates models in two layers:
+\framework builds on the \seclens benchmark~\citep{halder2026seclens}, which evaluates models in two layers:
 
 \begin{itemize}[noitemsep,topsep=2pt]
     \item \textbf{Layer 1, Code-in-Prompt (CIP):} The vulnerable function is provided directly in the prompt. The model must identify whether the code is vulnerable, classify the CWE, and provide analysis from a single code snippet. This tests pure reasoning ability without tool use.
@@ -529,7 +529,7 @@ When dimensions are excluded, Equation~\ref{eq:decision_score} adjusts the denom
 \subsection{SecLens Integration}
 \label{sec:integration}
 
-As described in Section~\ref{sec:layers}, \framework extends the \seclens benchmark~\citep{halder2025seclens}, which evaluates models across CIP and TU layers with per-task scoring of verdict, CWE, and location. The role-specific dimensions consume the per-task result records produced by \seclens, including:
+As described in Section~\ref{sec:layers}, \framework extends the \seclens benchmark~\citep{halder2026seclens}, which evaluates models across CIP and TU layers with per-task scoring of verdict, CWE, and location. The role-specific dimensions consume the per-task result records produced by \seclens, including:
 \begin{itemize}[noitemsep,topsep=2pt]
     \item \textbf{Scores:} verdict (0/1), CWE match (0/1), location match (0/1), total earned
     \item \textbf{Parse result:} status (FULL/PARTIAL/FAILED), parsed output fields (verdict, CWE, location, reasoning, evidence chain with source/sink/flow)
@@ -1131,10 +1131,10 @@ Google.
 \newblock Gemini 3: A family of highly capable multimodal models.
 \newblock Technical report, Google DeepMind, 2025.
 
-\bibitem[{Halder et~al.}(2025)]{halder2025seclens}
+\bibitem[{Halder et~al.}(2026)]{halder2026seclens}
 S.~Halder, S.~Saxena, K.~K.~Shrish, and T.~M.
 \newblock SecLens: Evaluating LLM vulnerability detection with CVE-grounded tasks.
-\newblock Technical report, 2025.
+\newblock Technical report, 2026.
 
 \bibitem[{Hwang and Yoon}(1981)]{hwang1981topsis}
 C.-L. Hwang and K.~Yoon.

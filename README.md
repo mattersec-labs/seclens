@@ -320,9 +320,9 @@ See [LICENSE](LICENSE) for details.
 If you use SecLens in your research, please cite:
 
 ```bibtex
-@article{halder2025seclens,
+@article{halder2026seclens,
   title={SecLens: Role-Specific Evaluation of LLMs for Security Vulnerability Detection},
   author={Halder, Subho and Saxena, Siddharth and Shrish, Kashinath Kadaba and M, Thiyagarajan},
-  year={2025}
+  year={2026}
 }
 ```
