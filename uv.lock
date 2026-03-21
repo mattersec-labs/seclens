@@ -373,7 +373,7 @@ wheels = [
 [[package]]
 name = "engine-harness"
 version = "0.1.0"
-source = { editable = "../engine-harness" }
+source = { git = "https://github.com/mattersec-labs/engine-harness?tag=v0.1.0#b0ca7d3c4518702c5648656020d8fc7cc154ab53" }
 dependencies = [
     { name = "pydantic" },
     { name = "tenacity" },
@@ -388,30 +388,6 @@ all = [
     { name = "ollama" },
     { name = "openai" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "anthropic", marker = "extra == 'all'", specifier = ">=0.84" },
-    { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.84" },
-    { name = "google-api-core", marker = "extra == 'all'", specifier = ">=2.24" },
-    { name = "google-api-core", marker = "extra == 'google'", specifier = ">=2.24" },
-    { name = "google-genai", marker = "extra == 'all'", specifier = ">=1.66" },
-    { name = "google-genai", marker = "extra == 'google'", specifier = ">=1.66" },
-    { name = "litellm", marker = "extra == 'all'", specifier = ">=1.82" },
-    { name = "litellm", marker = "extra == 'litellm'", specifier = ">=1.82" },
-    { name = "ollama", marker = "extra == 'all'", specifier = ">=0.6" },
-    { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.6" },
-    { name = "openai", marker = "extra == 'all'", specifier = ">=2.26" },
-    { name = "openai", marker = "extra == 'openai'", specifier = ">=2.26" },
-    { name = "openai", marker = "extra == 'openrouter'", specifier = ">=2.26" },
-    { name = "pydantic", specifier = ">=2.12" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0" },
-    { name = "python-dotenv", marker = "extra == 'dev'", specifier = ">=1.2" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15" },
-    { name = "tenacity", specifier = ">=9.1" },
-]
-provides-extras = ["anthropic", "openai", "google", "ollama", "litellm", "openrouter", "all", "dev"]
 
 [[package]]
 name = "fastuuid"
@@ -1516,7 +1492,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "datasets", specifier = ">=4.6" },
-    { name = "engine-harness", extras = ["all"], editable = "../engine-harness" },
+    { name = "engine-harness", extras = ["all"], git = "https://github.com/mattersec-labs/engine-harness?tag=v0.1.0" },
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "numpy", specifier = ">=2.4" },
     { name = "pydantic", specifier = ">=2.12" },

@@ -38,7 +38,7 @@ include = ["seclens*"]
 seclens = ["py.typed", "prompts/*.yaml"]
 
 [tool.uv.sources]
-engine-harness = { path = "../engine-harness", editable = true }
+engine-harness = { git = "https://github.com/mattersec-labs/engine-harness", tag = "v0.1.0" }
 
 [tool.ruff]
 line-length = 120
