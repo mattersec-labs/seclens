@@ -17,3 +17,13 @@ htmlcov/
 !bootstrap.jsonl
 out/
 .DS_Store
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.synctex.gz
