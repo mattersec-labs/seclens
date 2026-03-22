@@ -410,6 +410,99 @@
     .sponsors strong { color: var(--text-secondary); }
     .copyright { color: var(--text-muted); font-size: 0.7rem; margin-top: 20px; }
 
+    /* Hero CTAs */
+    .hero-ctas {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 48px;
+      flex-wrap: wrap;
+    }
+    .hero-star-btn, .hero-paper-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+    .hero-star-btn {
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #0a0a0b;
+    }
+    .hero-star-btn:hover {
+      box-shadow: 0 0 30px var(--accent-glow);
+      opacity: 1;
+    }
+    .hero-paper-btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+    }
+    .hero-paper-btn:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+      opacity: 1;
+    }
+
+    /* Star Button (nav) */
+    .star-btn {
+      border: 1px solid var(--accent) !important;
+      padding: 4px 12px;
+      color: var(--accent) !important;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .star-btn:hover {
+      background: var(--accent);
+      color: #0a0a0b !important;
+      box-shadow: 0 0 16px var(--accent-glow);
+      opacity: 1 !important;
+    }
+
+    /* Star CTA */
+    .star-cta {
+      text-align: center;
+      padding: 64px 0;
+      border-top: 1px solid var(--border);
+    }
+    .star-cta h3 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .star-cta p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+    .star-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+    .star-cta-btn:hover {
+      background: var(--accent);
+      color: #0a0a0b;
+      box-shadow: 0 0 24px var(--accent-glow);
+      opacity: 1;
+    }
+
     /* Scroll Reveal */
     .reveal {
       opacity: 0; transform: translateY(20px);
@@ -462,6 +555,7 @@
       <a href="#radar">Roles</a>
       <a href="#dataset">Dataset</a>
       <a href="paper/seclens_role_specific_evaluation.pdf" target="_blank">Paper</a>
+      <a href="https://github.com/mattersec-labs/seclens" target="_blank" class="star-btn">&#9733; Star on GitHub</a>
     </div>
   </div>
 </nav>
@@ -476,6 +570,10 @@
     <p class="hero-sub">
       SecLens evaluates LLMs on real-world vulnerability detection through five stakeholder lenses. Decision Scores diverge by up to 31 points for the same model.
     </p>
+    <div class="hero-ctas">
+      <a href="https://github.com/mattersec-labs/seclens" target="_blank" class="hero-star-btn">&#9733; Star on GitHub</a>
+      <a href="paper/seclens_role_specific_evaluation.pdf" target="_blank" class="hero-paper-btn">Download Paper</a>
+    </div>
     <div class="hero-stats">
       <div class="hero-stat"><div class="num">406</div><div class="lbl">CVE Tasks</div></div>
       <div class="hero-stat"><div class="num">12</div><div class="lbl">Models</div></div>
@@ -686,6 +784,15 @@
     </div>
   </div>
 </section>
+
+<!-- STAR CTA -->
+<div class="star-cta">
+  <div class="container reveal">
+    <h3>Open Source</h3>
+    <p>Star the repo to follow updates and new model evaluations.</p>
+    <a href="https://github.com/mattersec-labs/seclens" target="_blank" class="star-cta-btn">&#9733; Star on GitHub</a>
+  </div>
+</div>
 
 <!-- FOOTER -->
 <footer>
