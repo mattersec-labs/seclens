@@ -1,10 +1,9 @@
-\documentclass[10pt,twocolumn]{article}
+\documentclass[10pt]{article}
 
 % --- Packages ---
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage[margin=1in]{geometry}
+\usepackage{arxiv}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -18,7 +17,6 @@
 \usepackage{tabularx}
 \usepackage{longtable}
 \usepackage{float}
-\usepackage{authblk}
 \usepackage{url}
 \usepackage{microtype}
 \usepackage{natbib}
@@ -35,14 +33,25 @@
     urlcolor=blue!60!black
 }
 
-% --- Title ---
-\title{\textbf{SecLens: Role-Specific Evaluation of LLMs\\for Security Vulnerability Detection}}
+\renewcommand{\headeright}{}
+\renewcommand{\undertitle}{}
 
-\author[1]{Subho Halder\thanks{Corresponding author. Email: \texttt{subho.halder@gmail.com}}}
-\author[1]{Siddharth Saxena}
-\author[1]{Kashinath Kadaba Shrish}
-\author[1]{Thiyagarajan M}
-\affil[1]{Independent Researchers}
+% --- Title ---
+\title{SecLens: Role-Specific Evaluation of LLMs\\for Security Vulnerability Detection}
+
+\author{
+  Subho Halder\thanks{Corresponding author. Email: \texttt{subho.halder@gmail.com}} \\
+  Mattersec Labs \\
+  \And
+  Siddharth Saxena \\
+  Mattersec Labs \\
+  \And
+  Kashinath Kadaba Shrish \\
+  Kalmantic Labs \\
+  \And
+  Thiyagarajan M \\
+  Kalmantic Labs \\
+}
 
 \date{}
 
