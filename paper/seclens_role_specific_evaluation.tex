@@ -18,10 +18,10 @@
 \usepackage{tabularx}
 \usepackage{longtable}
 \usepackage{float}
-\usepackage{authblk}
+% \usepackage{authblk}
 \usepackage{url}
 \usepackage{microtype}
-\usepackage{natbib}
+\usepackage[numbers,sort&compress]{natbib}
 \usepackage{xspace}
 
 % --- Custom commands ---
@@ -38,11 +38,26 @@
 % --- Title ---
 \title{\textbf{SecLens: Role-Specific Evaluation of LLMs\\for Security Vulnerability Detection}}
 
-\author[1]{Subho Halder\thanks{Corresponding author. Email: \texttt{subho.halder@gmail.com}}}
-\author[1]{Siddharth Saxena}
-\author[1]{Kashinath Kadaba Shrish}
-\author[1]{Thiyagarajan M}
-\affil[1]{Independent Researchers}
+\author{%
+\makebox[\textwidth]{%
+\begin{tabular}[t]{c}
+\textbf{Subho Halder\thanks{Corresponding author. Email: \texttt{subho.halder@gmail.com}}} \\
+Mattersec Labs
+\end{tabular}\hfill
+\begin{tabular}[t]{c}
+\textbf{Siddharth Saxena} \\
+Mattersec Labs
+\end{tabular}\hfill
+\begin{tabular}[t]{c}
+\textbf{Kashinath Kadaba Shrish} \\
+Kalmantic Labs
+\end{tabular}\hfill
+\begin{tabular}[t]{c}
+\textbf{Thiyagarajan M} \\
+Kalmantic Labs
+\end{tabular}%
+}%
+}
 
 \date{}
 
@@ -109,7 +124,7 @@ More recent work has sharpened the picture. PrimeVul~\citep{ding2024primevul} de
 
 Three concurrent benchmarks are particularly relevant. SecVulEval~\citep{lu2025secvuleval} is the largest CVE-grounded benchmark to date, covering 25,440 C/C++ function samples across 5,867 CVEs with statement-level ground truth; the best model (Claude~3.7 Sonnet) achieves only 23.83\% F1, underscoring the difficulty of the task. SEC-bench~\citep{lee2025secbench} introduces automated CVE reproduction with proof-of-concept generation and patch validation, evaluating LLM agents on 200 verified instances; top models achieve at most 18\% PoC generation and 34\% patching success. TOSSS~\citep{damie2026tosss}, published concurrently with our work, frames vulnerability detection as binary snippet selection across C/C++ and Java CVEs; model scores range from 0.48 to 0.89.
 
-LLMSecEval~\citep{tony2023llmseceval} provides security-relevant code completions based on MITRE CWE scenarios. SecurityEval~\citep{siddiq2022securityeval} offers a focused dataset for evaluating LLM-generated code. RepoSim~\citep{zhang2024reposim} evaluates repository-level vulnerability detection with multi-file contexts.
+LLMSecEval~\citep{tony2023llmseceval} provides security-relevant code completions based on MITRE CWE scenarios. SecurityEval~\citep{siddiq2022securityeval} offers a focused dataset for evaluating LLM-generated code.
 
 All of these benchmarks produce single aggregate scores or per-category breakdowns without stakeholder-specific interpretation. None addresses the organizational decision context in which evaluation results are consumed. Our work is complementary: the \framework scoring layer can consume output from any of these benchmarks, transforming a single leaderboard into five role-specific evaluations.
 
@@ -1061,23 +1076,23 @@ The authors thank the open-source LLM and security research communities for the 
 
 \begin{thebibliography}{40}
 
-\bibitem[Amland(1999)]{amland1999riskbased}
+\bibitem[Amland(2000)]{amland1999riskbased}
 S.~Amland.
 \newblock Risk-based testing: Risk analysis fundamentals and metrics for software testing including a financial application case study.
-\newblock \emph{Journal of Systems and Software}, 49(2-3):287--295, 1999.
+\newblock \emph{Journal of Systems and Software}, 53(3):287--295, 2000.
 
-\bibitem[Anthropic(2025)]{anthropic2025claude46}
+\bibitem[Anthropic(2026)]{anthropic2025claude46}
 Anthropic.
-\newblock The Claude 4.6 model family.
-\newblock Technical report, Anthropic, 2025.
+\newblock Claude Opus 4.6 system card.
+\newblock Technical report, Anthropic, 2026.
 
 \bibitem[Chicco and Jurman(2020)]{chicco2020mcc}
 D.~Chicco and G.~Jurman.
 \newblock The advantages of the Matthews correlation coefficient (MCC) over F1 score and accuracy in binary classification evaluation.
-\newblock \emph{BMC Genomics}, 21(6), 2020.
+\newblock \emph{BMC Genomics}, 21, Article 6, 2020.
 
 \bibitem[Chiang et~al.(2024)]{chiang2024arena}
-W.-L. Chiang, L.~Zheng, Y.~Sheng, A.~N. Angelopoulos, T.~Li, D.~Li, H.~Zhang, B.~Zhu, M.~Jordan, J.~E. Gonzalez, and I.~Stoica.
+W.-L. Chiang, L.~Zheng, Y.~Sheng, A.~N. Angelopoulos, T.~Li, D.~Li, B.~Zhu, H.~Zhang, M.~Jordan, J.~E. Gonzalez, and I.~Stoica.
 \newblock Chatbot Arena: An open platform for evaluating LLMs by human preference.
 \newblock In \emph{International Conference on Machine Learning}, 2024.
 
@@ -1087,12 +1102,12 @@ V.~R. Basili, G.~Caldiera, and H.~D. Rombach.
 \newblock \emph{Encyclopedia of Software Engineering}, pages 528--532, 1994.
 
 \bibitem[Bhatt et~al.(2023)]{bhatt2023cyberseceval}
-M.~Bhatt, S.~Chennabasappa, C.~Nikolaidis, S.~Wan, I.~Evtimov, D.~Gabi, D.~Song, F.~Ahmad, C.~Aber, A.~Terzis, et~al.
+M.~Bhatt, S.~Chennabasappa, C.~Nikolaidis, S.~Wan, I.~Evtimov, D.~Gabi, D.~Song, F.~Ahmad, C.~Aschermann, L.~Fontana, et~al.
 \newblock Purple Llama CyberSecEval: A secure coding benchmark for language models.
 \newblock \emph{arXiv preprint arXiv:2312.04724}, 2023.
 
 \bibitem[Bhatt et~al.(2024)]{bhatt2024purplellama}
-M.~Bhatt, S.~Chennabasappa, Y.~Li, C.~Nikolaidis, D.~Song, S.~Wan, F.~Ahmad, C.~Aschermann, Y.~Chen, D.~Deleo, et~al.
+M.~Bhatt, S.~Chennabasappa, Y.~Li, C.~Nikolaidis, D.~Song, S.~Wan, F.~Ahmad, C.~Aschermann, Y.~Chen, D.~Kapil, et~al.
 \newblock CyberSecEval 2: A wide-ranging cybersecurity evaluation suite for large language models.
 \newblock \emph{arXiv preprint arXiv:2404.13161}, 2024.
 
@@ -1111,10 +1126,10 @@ R.~Fang, R.~Bindu, A.~Gupta, Q.~Zhan, and D.~Kang.
 \newblock LLM agents can autonomously hack websites.
 \newblock \emph{arXiv preprint arXiv:2402.06664}, 2024.
 
-\bibitem[Feiglin and Dar(2025)]{feiglin2025sastbench}
+\bibitem[Feiglin and Dar(2026)]{feiglin2025sastbench}
 J.~Feiglin and G.~Dar.
 \newblock SastBench: A benchmark for testing agentic SAST triage.
-\newblock \emph{arXiv preprint arXiv:2601.02941}, 2025.
+\newblock \emph{arXiv preprint arXiv:2601.02941}, 2026.
 
 \bibitem[Gao et~al.(2023)]{gao2023vulbench}
 Z.~Gao, H.~Wang, Y.~Zhou, W.~Zhu, and C.~Zhang.
@@ -1127,8 +1142,8 @@ T.~Gebru, J.~Morgenstern, B.~Vecchione, J.~W. Vaughan, H.~Wallach, H.~Daum{\'e}~
 \newblock \emph{Communications of the ACM}, 64(12):86--92, 2021.
 
 \bibitem[Google(2025)]{google2025gemini3}
-Google.
-\newblock Gemini 3: A family of highly capable multimodal models.
+Google DeepMind.
+\newblock Gemini 3 Pro model card.
 \newblock Technical report, Google DeepMind, 2025.
 
 \bibitem[{Halder et~al.}(2026)]{halder2026seclens}
@@ -1152,9 +1167,9 @@ C.~E. Jim{\'e}nez, J.~Yang, A.~Wettig, S.~Yao, K.~Pei, O.~Press, and K.~Narasimh
 \newblock In \emph{International Conference on Learning Representations}, 2024.
 
 \bibitem[Li et~al.(2023)]{li2023seceval}
-Z.~Li, C.~Wang, Z.~Liu, H.~Wang, S.~Li, and C.~Gao.
+G.~Li, Y.~Li, G.~Wang, H.~Yang, and Y.~Yu.
 \newblock SecEval: A comprehensive benchmark for evaluating cybersecurity knowledge of foundation models.
-\newblock \emph{arXiv preprint arXiv:2312.10505}, 2023.
+\newblock \url{https://github.com/XuanwuAI/SecEval}, 2023.
 
 \bibitem[Lee et~al.(2025)]{lee2025secbench}
 H.~Lee, Z.~Zhang, H.~Lu, and L.~Zhang.
@@ -1171,8 +1186,8 @@ P.~Liang, R.~Bommasani, T.~Lee, D.~Tsipras, D.~Soylu, M.~Yasunaga, Y.~Zhang, D.~
 \newblock Holistic evaluation of language models.
 \newblock \emph{arXiv preprint arXiv:2211.09110}, 2022.
 
-\bibitem[Lu et~al.(2025)]{lu2025secvuleval}
-S.~Lu, B.~Choi, and J.~Chen.
+\bibitem[Ahmed et~al.(2025)]{lu2025secvuleval}
+M.~B.~U. Ahmed, N.~S. Harzevili, J.~Shin, H.~V. Pham, and S.~Wang.
 \newblock SecVulEval: Benchmarking LLMs for real-world {C/C++} vulnerability detection.
 \newblock \emph{arXiv preprint arXiv:2505.19828}, 2025.
 
@@ -1199,12 +1214,12 @@ M.~Mitchell, S.~Wu, A.~Zaldivar, P.~Barnes, L.~Vasserman, B.~Hutchinson, E.~Spit
 \bibitem[{OWASP Foundation}(2021)]{owasp2021top10}
 {OWASP Foundation}.
 \newblock OWASP Top 10:2021.
-\newblock \url{https://owasp.org/Top10/}, 2021.
+\newblock \url{https://owasp.org/Top10/2021/}, 2021.
 
-\bibitem[OpenAI(2025)]{openai2025gpt54}
+\bibitem[OpenAI(2026)]{openai2025gpt54}
 OpenAI.
-\newblock GPT-5.4 system card.
-\newblock Technical report, OpenAI, 2025.
+\newblock GPT-5.4 Thinking system card.
+\newblock Technical report, OpenAI, 2026.
 
 \bibitem[Pearce et~al.(2022)]{pearce2022asleep}
 H.~Pearce, B.~Ahmad, B.~Tan, B.~Dolan-Gavitt, and R.~Karri.
@@ -1232,13 +1247,13 @@ W.~Sun, J.~Wang, Q.~Guo, Z.~Li, W.~Wang, and R.~Hai.
 \newblock \emph{arXiv preprint arXiv:2407.12797}, 2024.
 
 \bibitem[Tony et~al.(2023)]{tony2023llmseceval}
-C.~Tony, M.~Mutas, N.~T. Diem~Ngo, and M.~Ferrara.
+C.~Tony, M.~Mutas, N.~E. Diaz~Ferreyra, and R.~Scandariato.
 \newblock LLMSecEval: A dataset of natural language prompts for security evaluations.
 \newblock In \emph{2023 IEEE/ACM International Conference on Mining Software Repositories (MSR)}, pages 588--592, 2023.
 
 \bibitem[Ullah et~al.(2024)]{ullah2024secllmholmes}
 S.~Ullah, M.~Han, S.~Pujar, H.~Pearce, A.~Coskun, and G.~Stringhini.
-\newblock LLMs cannot reliably identify and reason about security vulnerabilities (yet?).
+\newblock LLMs cannot reliably identify and reason about security vulnerabilities (yet?): A comprehensive evaluation, framework, and benchmarks.
 \newblock In \emph{IEEE Symposium on Security and Privacy (SP)}, 2024. arXiv:2312.12575.
 
 \bibitem[Velasquez and Hester(2013)]{velasquez2013mcda}
@@ -1250,11 +1265,6 @@ M.~Velasquez and P.~T. Hester.
 S.~Wan, C.~Nikolaidis, D.~Song, D.~Molnar, J.~Crnkovich, J.~Grace, M.~Bhatt, et~al.
 \newblock CyberSecEval 3: Advancing the evaluation of cybersecurity risks and capabilities in large language models.
 \newblock \emph{arXiv preprint arXiv:2408.01605}, 2024.
-
-\bibitem[Zhang et~al.(2024)]{zhang2024reposim}
-J.~Zhang, C.~Liu, K.~Chen, and Z.~Su.
-\newblock Repository-level vulnerability detection with LLMs: Challenges and opportunities.
-\newblock \emph{arXiv preprint arXiv:2401.16185}, 2024.
 
 \end{thebibliography}
 
