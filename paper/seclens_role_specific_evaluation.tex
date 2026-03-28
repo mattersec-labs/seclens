@@ -23,6 +23,7 @@
 \usepackage{microtype}
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{xspace}
+\usepackage{abstract}
 
 % --- Custom commands ---
 \newcommand{\framework}{SecLens-R\xspace}
@@ -63,16 +64,14 @@ Kalmantic Labs
 
 \begin{document}
 
-\maketitle
-
-% ============================================================
-% ABSTRACT
-% ============================================================
-\begin{abstract}
+\twocolumn[
+  \maketitle
+  \begin{onecolabstract}
 Existing benchmarks for LLM-based vulnerability detection reduce a model's capability to one number. That number cannot serve the divergent needs of a CISO who prioritizes critical-vulnerability recall, an engineering leader who optimizes for low false-positive rates, or an AI officer who weighs cost against capability. We introduce \framework, a multi-stakeholder evaluation framework built on 35 shared dimensions across 7 measurement categories. Five role-specific weight profiles (CISO, Chief AI Officer, Security Researcher, Head of Engineering, and AI-as-Actor) each select 12--16 dimensions with weights summing to 80, producing a composite Decision Score between 0 and 100. We evaluate 12 frontier models on a dataset of 406 tasks drawn from 93 open-source projects spanning 10 programming languages and 8 OWASP-aligned vulnerability categories, using both Code-in-Prompt (CIP) and Tool-Use (TU) evaluation layers. Decision Scores diverge by up to 31 points across roles for the same model: Qwen3-Coder earns an A (76.3) for Head of Engineering but a D (45.2) for CISO; GPT-5.4 earns an A (76.7) for Head of Engineering but a D (48.4) for CISO. These results confirm that model selection for security vulnerability detection is not a single-objective problem, and that stakeholder-aware evaluation surfaces information that aggregate scores cannot.
-\end{abstract}
-
-\textbf{Keywords:} large language models, security vulnerability detection, benchmark, role-specific evaluation, multi-stakeholder decision framework
+  \end{onecolabstract}
+  \vspace{1.5em}
+]
+\saythanks
 
 % ============================================================
 % 1. INTRODUCTION
@@ -91,7 +90,7 @@ Consider the divergent needs of different organizational stakeholders:
     \item A \textbf{Chief AI Officer (CAIO)} asks: ``Which model unlocks new capabilities while balancing risk and cost?'' The CAIO cares about MCC-per-dollar, autonomous completion rates, and tool-use effectiveness at scale.
     \item A \textbf{Security Researcher} asks: ``How deep and reliable is this model's vulnerability reasoning?'' Researchers need CWE taxonomy mastery, evidence chain completeness, and reasoning quality on both true positives and false positives.
     \item A \textbf{Head of Engineering} asks: ``Will this help or hurt my team's velocity and code quality?'' Engineering leaders optimize for high precision (low false-positive rates), fast wall times, low cost per task, and actionable findings with CWE and location.
-    \item An \textbf{AI-as-Actor} evaluation asks: ``Does the agent know what it can and can't do?'' This lens evaluates parse reliability, format compliance, error handling, autonomous completion, and graceful degradation under varying task difficulty.
+    \item An \textbf{AI-as-Actor} evaluation asks: ``Does the agent know what it can and can't do?'' This lens evaluates parse reliability, format compliance, error handling, autonomous completion, and graceful degradation.
 \end{itemize}
 
 A single benchmark score cannot serve all five perspectives. A model ranked first overall might be the worst choice for a CISO if it misses critical vulnerabilities, or the worst choice for engineering if it generates excessive false positives. Our empirical results confirm this: the same model can score 31 points apart depending on which stakeholder lens is applied.
