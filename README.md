@@ -4,7 +4,13 @@
     <strong>Role-Specific Evaluation of LLMs for Security Vulnerability Detection</strong>
   </p>
   <p align="center">
-    <a href="paper/seclens_role_specific_evaluation.pdf">Paper</a> &middot;
+    <a href="https://arxiv.org/abs/2604.01637"><img src="https://img.shields.io/badge/arXiv-2604.01637-b31b1b.svg" alt="arXiv"></a>
+    <a href="https://arxiv.org/abs/2604.01637"><img src="https://img.shields.io/badge/cs.CR-Cryptography%20%26%20Security-blue.svg" alt="cs.CR"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"></a>
+    <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.13-3776AB.svg?logo=python&logoColor=white" alt="Python 3.13"></a>
+  </p>
+  <p align="center">
+    <a href="https://arxiv.org/abs/2604.01637">Paper</a> &middot;
     <a href="docs/overview.md">Docs</a> &middot;
     <a href="#quick-start">Quick Start</a> &middot;
     <a href="#results">Results</a>
@@ -250,7 +256,8 @@ Subho Halder, Siddharth Saxena, Kashinath Kadaba Shrish, Thiyagarajan M
 </p>
 
 <p align="center">
-  <a href="paper/seclens_role_specific_evaluation.pdf">Read the full paper (PDF)</a>
+  <a href="https://arxiv.org/abs/2604.01637">Read on arXiv</a> &middot;
+  <a href="paper/seclens_role_specific_evaluation.pdf">PDF</a>
 </p>
 
 ## Development
@@ -323,6 +330,8 @@ If you use SecLens in your research, please cite:
 @article{halder2026seclens,
   title={SecLens: Role-Specific Evaluation of LLMs for Security Vulnerability Detection},
   author={Halder, Subho and Saxena, Siddharth and Shrish, Kashinath Kadaba and M, Thiyagarajan},
-  year={2026}
+  journal={arXiv preprint arXiv:2604.01637},
+  year={2026},
+  doi={10.48550/arXiv.2604.01637}
 }
 ```
