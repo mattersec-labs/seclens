@@ -13,6 +13,7 @@ from seclens.schemas.task import EvalLayer
 from seclens.evaluation.runner import (
     _build_run_metadata,
     _error_result,
+    _make_cost_tracker,
     evaluate_task,
 )
 from seclens.schemas.output import ParseStatus
@@ -496,3 +497,40 @@ class TestEvaluateTaskLayer2:
 
         assert result.metrics.tool_calls == 2
         assert result.metrics.turns == 3
+
+
+class TestMakeCostTracker:
+    """Free local providers must skip pricing lookup entirely (no warnings)."""
+
+    @pytest.mark.parametrize(
+        "model",
+        [
+            "ollama/qwen3:8b",
+            "ollama_chat/qwen3:8b",
+            "litellm/ollama/qwen3:8b",
+            "litellm/ollama_chat/qwen3:8b",
+        ],
+    )
+    def test_free_providers_skip_pricing(self, model: str, caplog: pytest.LogCaptureFixture) -> None:
+        cfg = RunConfig(model=model, dataset="x.jsonl", layer="tool-use", mode="guided")
+        with caplog.at_level("WARNING", logger="engine_harness.cost.pricing"):
+            tracker = _make_cost_tracker(cfg)
+        assert tracker.pricing == {}
+        assert tracker.current_cost == 0.0
+        assert not caplog.records
+
+    def test_paid_provider_resolves_pricing(self) -> None:
+        cfg = RunConfig(
+            model="anthropic/claude-sonnet-4-20250514",
+            dataset="x.jsonl", layer="tool-use", mode="guided",
+        )
+        tracker = _make_cost_tracker(cfg)
+        assert tracker.pricing  # resolved from litellm's pricing database
+
+    def test_max_cost_forwarded(self) -> None:
+        cfg = RunConfig(
+            model="ollama/qwen3:8b", dataset="x.jsonl",
+            layer="tool-use", mode="guided", max_cost=5.0,
+        )
+        tracker = _make_cost_tracker(cfg)
+        assert tracker.max_cost == 5.0
