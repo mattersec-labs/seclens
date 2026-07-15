@@ -22,7 +22,7 @@ import seclens
 from seclens.evaluation.config import RunConfig
 from seclens.schemas.task import EvalLayer
 from seclens.parsing.parser import parse_response
-from seclens.sandbox.manager import SandboxManager, fetch_target_code
+from seclens.sandbox.manager import SandboxManager, fetch_target_file
 from seclens.schemas.output import ParseResult, ParseStatus
 from seclens.schemas.scoring import RunMetadata, TaskMetrics, TaskResult, TaskScore
 from seclens.schemas.task import Task
@@ -112,7 +112,7 @@ def _evaluate_layer1(
     """Layer 1: code-in-prompt, single turn, no tools."""
     from seclens.prompts.builder import build_prompt
 
-    code_block = fetch_target_code(
+    code_block = fetch_target_file(
         task.repository.url, task.repository.commit, task.target,
     )
 

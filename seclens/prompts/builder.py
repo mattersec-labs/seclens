@@ -29,7 +29,7 @@ def build_prompt(
         mode: ``"guided"`` (with category hint) or ``"open"`` (no hint).
         layer: Layer number (1/2) or EvalLayer enum. Used to select
             ``user_l1`` / ``user_l2`` template keys.
-        code_block: Function source code (Layer 1) or ``None`` (Layer 2).
+        code_block: Full file source (Layer 1) or ``None`` (Layer 2).
 
     Returns:
         List of Messages with system and user prompts.

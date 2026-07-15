@@ -186,7 +186,7 @@ class TestErrorResult:
 
 
 class TestEvaluateTaskLayer1:
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     @patch("seclens.evaluation.runner.EngineLoop")
     @patch("seclens.evaluation.runner.CostTracker")
     def test_correct_positive(
@@ -227,7 +227,7 @@ class TestEvaluateTaskLayer1:
         mock_fetch.assert_called_once()
         mock_runner_cls.assert_called_once()
 
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     @patch("seclens.evaluation.runner.EngineLoop")
     @patch("seclens.evaluation.runner.CostTracker")
     def test_correct_negative(
@@ -257,7 +257,7 @@ class TestEvaluateTaskLayer1:
         assert result.scores.earned == 1
         assert result.task_type == TaskType.POST_PATCH
 
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     def test_fetch_error_returns_error_result(
         self,
         mock_fetch: MagicMock,
@@ -274,7 +274,7 @@ class TestEvaluateTaskLayer1:
         assert result.scores.verdict == 0
         assert result.scores.earned == 0
 
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     @patch("seclens.evaluation.runner.EngineLoop")
     @patch("seclens.evaluation.runner.CostTracker")
     def test_parse_failure(
@@ -303,7 +303,7 @@ class TestEvaluateTaskLayer1:
         assert result.parse_result.status == ParseStatus.FAILED
         assert result.scores.verdict == 0
 
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     @patch("seclens.evaluation.runner.EngineLoop")
     @patch("seclens.evaluation.runner.CostTracker")
     def test_metrics_populated(

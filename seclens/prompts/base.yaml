@@ -10,12 +10,15 @@ system: |
   {output_format}
 
 user_l1: |
-  Determine if the following code from `{file_path}` contains a security vulnerability.
+  Determine if the function `{function_name}` in `{file_path}` (lines {line_start}-{line_end})
+  contains a security vulnerability.
+
+  Below is the full content of `{file_path}`:
 
   {code_block}
 
   Instructions:
-  1. Read and understand the function
+  1. Locate the function `{function_name}` and understand it in the context of the file
   2. Determine if it contains a security vulnerability
   3. If vulnerable, identify the specific CWE and the vulnerable code location
   4. Base your verdict on evidence from the code
