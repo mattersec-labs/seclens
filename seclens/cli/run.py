@@ -141,6 +141,14 @@ def run_command(
             help="Save full message chains to a debug JSONL file",
         ),
     ] = False,
+    ollama_host: Annotated[
+        Optional[str],
+        typer.Option(
+            "--ollama-host",
+            help="Ollama server URL for ollama/* models "
+            "(default: $OLLAMA_HOST or http://localhost:11434)",
+        ),
+    ] = None,
     think: Annotated[
         Optional[str],
         typer.Option(
@@ -265,6 +273,9 @@ def run_command(
     # Create adapter and sandbox manager
     adapter_kwargs: dict = {}
     if config.model.startswith("ollama/"):
+        host = ollama_host or os.environ.get("OLLAMA_HOST")
+        if host:
+            adapter_kwargs["host"] = host
         if config.think is not None:
             adapter_kwargs["think"] = config.think
     try:

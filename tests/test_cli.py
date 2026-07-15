@@ -172,6 +172,47 @@ class TestRunCommand:
         assert result.exit_code == 0
         return mock_adapter
 
+    def test_ollama_host_flag_forwarded(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/qwen3:8b",
+            ["--ollama-host", "http://192.168.1.50:11434"],
+            tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("ollama/qwen3:8b", host="http://192.168.1.50:11434")
+
+    def test_ollama_host_env_fallback(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("OLLAMA_HOST", "http://gpu-box:11434")
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/qwen3:8b", [], tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("ollama/qwen3:8b", host="http://gpu-box:11434")
+
+    def test_ollama_host_flag_overrides_env(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("OLLAMA_HOST", "http://gpu-box:11434")
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/qwen3:8b",
+            ["--ollama-host", "http://192.168.1.50:11434"],
+            tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("ollama/qwen3:8b", host="http://192.168.1.50:11434")
+
+    def test_ollama_host_ignored_for_other_providers(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("OLLAMA_HOST", "http://gpu-box:11434")
+        mock_adapter = self._run_and_get_adapter_mock(
+            "test/model",
+            ["--ollama-host", "http://192.168.1.50:11434"],
+            tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("test/model")
+
     def test_think_flag_forwarded_as_bool(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
     ) -> None:
