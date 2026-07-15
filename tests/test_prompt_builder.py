@@ -118,10 +118,11 @@ class TestBuildPrompt:
         assert "sql_injection" not in system_content
 
     def test_template_vars_filled_l1(self, sample_task: Task) -> None:
-        """L1 user prompt contains code block (no file path in CIP mode)."""
+        """L1 user prompt contains the code block and the target file path."""
         messages = build_prompt(sample_task, preset_name="base", layer=1, code_block="def vulnerable(): pass")
         user_content = messages[1].content
         assert "def vulnerable(): pass" in user_content
+        assert "django/db/models/sql/query.py" in user_content
 
     def test_template_vars_filled_l2(self, sample_task: Task) -> None:
         """L2 user prompt contains function name, file path, and line range."""

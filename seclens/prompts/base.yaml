@@ -10,7 +10,7 @@ system: |
   {output_format}
 
 user_l1: |
-  Determine if the following code contains a security vulnerability.
+  Determine if the following code from `{file_path}` contains a security vulnerability.
 
   {code_block}
 
