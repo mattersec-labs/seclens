@@ -37,8 +37,15 @@ include = ["seclens*"]
 [tool.setuptools.package-data]
 seclens = ["py.typed", "prompts/*.yaml"]
 
+[tool.uv]
+# Security floor: litellm < 1.84.0 is affected by multiple advisories
+# (auth bypass GHSA-4xpc-pv4p-pm3w, SQLi GHSA-r75f-5x8p-qvmc, and others).
+constraint-dependencies = ["litellm>=1.84.0"]
+
 [tool.uv.sources]
-engine-harness = { git = "https://github.com/mattersec-labs/engine-harness", tag = "v0.1.0" }
+# Local editable install while iterating on the text tool-call fallback;
+# revert to a git tag (v0.1.1) before publishing results.
+engine-harness = { path = "../engine-harness", editable = true }
 
 [tool.ruff]
 line-length = 120
