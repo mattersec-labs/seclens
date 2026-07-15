@@ -421,6 +421,9 @@ def run_command(
             display,
             console=console,
             refresh_per_second=12,
+            # Default "ellipsis" crops the table with "…" once it exceeds the
+            # terminal height and rows below stop updating — show everything.
+            vertical_overflow="visible",
         ):
             ptask = progress.add_task("Evaluating", total=len(pending_tasks))
 
