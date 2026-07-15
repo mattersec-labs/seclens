@@ -534,3 +534,52 @@ class TestMakeCostTracker:
         )
         tracker = _make_cost_tracker(cfg)
         assert tracker.max_cost == 5.0
+
+
+class TestBuildMetrics:
+    def test_text_fallback_tool_calls_counted(self) -> None:
+        from engine_harness import Message, Role, ToolCall
+
+        from seclens.evaluation.runner import _build_metrics
+
+        result = _make_engineloop_result('{"vulnerable": false}', turns=3)
+        result.messages = [
+            Message(role=Role.USER, content="Analyze"),
+            Message(
+                role=Role.ASSISTANT,
+                content="",
+                tool_calls=[
+                    ToolCall(
+                        id="text-tc-1", name="read_file", arguments={},
+                        metadata={"text_fallback": True},
+                    ),
+                    ToolCall(id="tc-2", name="search", arguments={}),
+                ],
+            ),
+            Message(role=Role.TOOL_RESULT, content="...", tool_call_id="text-tc-1"),
+            Message(
+                role=Role.ASSISTANT,
+                content="",
+                tool_calls=[
+                    ToolCall(
+                        id="text-tc-3", name="read_file", arguments={},
+                        metadata={"text_fallback": True},
+                    ),
+                ],
+            ),
+        ]
+        tracker = MagicMock(current_cost=0.0)
+
+        metrics = _build_metrics(result, tracker)
+
+        assert metrics.text_fallback_tool_calls == 2
+
+    def test_text_fallback_defaults_to_zero(self) -> None:
+        from seclens.evaluation.runner import _build_metrics
+
+        result = _make_engineloop_result('{"vulnerable": false}')
+        tracker = MagicMock(current_cost=0.0)
+
+        metrics = _build_metrics(result, tracker)
+
+        assert metrics.text_fallback_tool_calls == 0

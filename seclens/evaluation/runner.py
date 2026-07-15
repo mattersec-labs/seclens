@@ -13,6 +13,7 @@ from engine_harness import (
     Message,
     ModelAdapter,
     ReadFileTool,
+    Role,
     SearchTool,
     ToolLogger,
 )
@@ -231,6 +232,13 @@ def _build_metrics(
 ) -> TaskMetrics:
     """Extract metrics from loop result and middleware state."""
     usage = result.total_usage
+    text_fallback_calls = sum(
+        1
+        for msg in result.messages
+        if msg.role == Role.ASSISTANT and msg.tool_calls
+        for tc in msg.tool_calls
+        if tc.metadata.get("text_fallback")
+    )
     return TaskMetrics(
         input_tokens=usage.input_tokens if usage else 0,
         output_tokens=usage.output_tokens if usage else 0,
@@ -240,6 +248,7 @@ def _build_metrics(
         total_tokens=(usage.input_tokens + usage.output_tokens) if usage else 0,
         cost_usd=cost_tracker.current_cost,
         tool_calls=len(tool_logger.log) if tool_logger else 0,
+        text_fallback_tool_calls=text_fallback_calls,
         turns=result.turns,
         wall_time_s=result.wall_time_s,
     )
