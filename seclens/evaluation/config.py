@@ -22,3 +22,4 @@ class RunConfig(BaseModel):
     resume: bool = False
     dry_run: bool = False
     location_recall_threshold: float = Field(default=1.0, ge=0.0, le=1.0)
+    think: bool | str | None = None

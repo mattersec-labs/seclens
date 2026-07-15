@@ -583,3 +583,20 @@ class TestBuildMetrics:
         metrics = _build_metrics(result, tracker)
 
         assert metrics.text_fallback_tool_calls == 0
+
+
+class TestRunMetadataThink:
+    def test_think_recorded_from_config(self) -> None:
+        from seclens.evaluation.runner import _build_run_metadata
+
+        cfg = RunConfig(
+            model="ollama/qwen3.5", dataset="x.jsonl",
+            layer="tool-use", mode="guided", think="low",
+        )
+        assert _build_run_metadata(cfg).think == "low"
+
+    def test_think_defaults_to_none(self) -> None:
+        from seclens.evaluation.runner import _build_run_metadata
+
+        cfg = RunConfig(model="ollama/qwen3.5", dataset="x.jsonl", layer="tool-use", mode="guided")
+        assert _build_run_metadata(cfg).think is None

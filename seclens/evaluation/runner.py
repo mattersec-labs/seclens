@@ -222,6 +222,7 @@ def _build_run_metadata(config: RunConfig) -> RunMetadata:
         seclens_version=seclens.__version__,
         seed=config.seed,
         location_recall_threshold=config.location_recall_threshold,
+        think=config.think,
     )
 
 

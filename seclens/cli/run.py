@@ -141,6 +141,15 @@ def run_command(
             help="Save full message chains to a debug JSONL file",
         ),
     ] = False,
+    think: Annotated[
+        Optional[str],
+        typer.Option(
+            "--think",
+            help="Thinking mode for ollama/* reasoning models: true, false, or a level "
+            "(low/medium/high/max; gpt-oss requires a level). Only valid for "
+            "thinking-capable models; omit to use the model default.",
+        ),
+    ] = None,
 ) -> None:
     """Run an evaluation benchmark against a model."""
     from seclens.schemas.task import EvalLayer
@@ -157,6 +166,17 @@ def run_command(
         )
         raise typer.Exit(code=1)
 
+    think_value: bool | str | None = None
+    if think is not None:
+        if not model.startswith("ollama/"):
+            console.print("[red]--think is currently supported only for ollama/* models.[/red]")
+            raise typer.Exit(code=1)
+        try:
+            think_value = _parse_think(think)
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=1) from None
+
     config = RunConfig(
         model=model,
         dataset=dataset,
@@ -170,6 +190,7 @@ def run_command(
         resume=resume,
         dry_run=dry_run,
         location_recall_threshold=location_recall_threshold,
+        think=think_value,
     )
 
     result_filename = _result_filename(config)
@@ -242,8 +263,12 @@ def run_command(
         raise typer.Exit()
 
     # Create adapter and sandbox manager
+    adapter_kwargs: dict = {}
+    if config.model.startswith("ollama/"):
+        if config.think is not None:
+            adapter_kwargs["think"] = config.think
     try:
-        adapter = create_adapter(config.model)
+        adapter = create_adapter(config.model, **adapter_kwargs)
     except (ValueError, KeyError, ImportError) as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from None
@@ -582,6 +607,18 @@ def _result_filename(config: RunConfig) -> str:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     model_slug = config.model.replace("/", "_")
     return f"results_{model_slug}_{config.layer.short}_{config.mode}_{config.prompt}_{timestamp}.jsonl"
+
+
+def _parse_think(value: str) -> bool | str:
+    """Parse a --think value: 'true'/'false' -> bool, level strings pass through."""
+    normalized = value.strip().lower()
+    if normalized in ("true", "false"):
+        return normalized == "true"
+    if normalized in ("low", "medium", "high", "max"):
+        return normalized
+    raise ValueError(
+        f"Invalid --think value: {value!r}. Use true, false, low, medium, high, or max."
+    )
 
 
 def _format_score(earned: float, max_points: float) -> str:

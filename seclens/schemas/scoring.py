@@ -58,6 +58,7 @@ class RunMetadata(BaseModel):
     seclens_version: str
     seed: int
     location_recall_threshold: float = 1.0
+    think: bool | str | None = None
 
 
 class TaskResult(BaseModel):

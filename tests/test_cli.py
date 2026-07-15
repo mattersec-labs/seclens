@@ -138,6 +138,87 @@ class TestRunCommand:
         assert "Evaluation complete" in result.output
         mock_eval.assert_called_once()
 
+    def _run_and_get_adapter_mock(
+        self,
+        model: str,
+        extra_args: list[str],
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> MagicMock:
+        """Invoke `run` with mocked pipeline; return the create_adapter mock."""
+        from seclens.evaluation.runner import EvalOutput
+
+        mock_task = MagicMock()
+        mock_task.id = "t1"
+        mock_task.repository.url = "https://github.com/test/repo"
+        mock_task.repository.language = "python"
+        mock_task.ground_truth.category = "sql_injection"
+
+        monkeypatch.chdir(tmp_path)
+        with (
+            patch("seclens.cli.run.create_adapter") as mock_adapter,
+            patch("seclens.cli.run.load_dataset", return_value=[mock_task]),
+            patch("seclens.cli.run.evaluate_task", return_value=EvalOutput(result=_make_result("t1"))),
+            patch("seclens.cli.run.write_result"),
+            patch("seclens.cli.run._run_report"),
+        ):
+            result = runner.invoke(app, [
+                "run",
+                "--model", model,
+                "--dataset", "test.jsonl",
+                "--workers", "1",
+                *extra_args,
+            ])
+        assert result.exit_code == 0
+        return mock_adapter
+
+    def test_think_flag_forwarded_as_bool(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/qwen3.5", ["--think", "true"], tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("ollama/qwen3.5", think=True)
+
+    def test_think_false_forwarded(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/qwen3.5", ["--think", "false"], tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("ollama/qwen3.5", think=False)
+
+    def test_think_level_forwarded_as_string(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/gpt-oss", ["--think", "low"], tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("ollama/gpt-oss", think="low")
+
+    def test_think_invalid_value_exits(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(app, [
+            "run", "--model", "ollama/qwen3.5", "--dataset", "x.jsonl",
+            "--think", "banana",
+        ])
+        assert result.exit_code == 1
+
+    def test_think_rejected_for_non_ollama_model(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(app, [
+            "run", "--model", "test/model", "--dataset", "x.jsonl",
+            "--think", "true",
+        ])
+        assert result.exit_code == 1
+
     @patch("seclens.cli.run.create_adapter")
     @patch("seclens.cli.run.load_dataset")
     @patch("seclens.cli.run.get_completed_ids")
@@ -169,6 +250,27 @@ class TestRunCommand:
             ])
         assert result.exit_code == 0
         assert "All tasks already completed" in result.output
+
+
+class TestParseThink:
+    def test_booleans(self) -> None:
+        from seclens.cli.run import _parse_think
+
+        assert _parse_think("true") is True
+        assert _parse_think("False") is False
+
+    def test_levels(self) -> None:
+        from seclens.cli.run import _parse_think
+
+        for level in ("low", "medium", "high", "max"):
+            assert _parse_think(level) == level
+        assert _parse_think("HIGH") == "high"
+
+    def test_invalid_raises(self) -> None:
+        from seclens.cli.run import _parse_think
+
+        with pytest.raises(ValueError):
+            _parse_think("banana")
 
 
 class TestSummaryCommand:
