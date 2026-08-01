@@ -13,6 +13,7 @@ from seclens.schemas.task import EvalLayer
 from seclens.evaluation.runner import (
     _build_run_metadata,
     _error_result,
+    _make_cost_tracker,
     evaluate_task,
 )
 from seclens.schemas.output import ParseStatus
@@ -185,7 +186,7 @@ class TestErrorResult:
 
 
 class TestEvaluateTaskLayer1:
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     @patch("seclens.evaluation.runner.EngineLoop")
     @patch("seclens.evaluation.runner.CostTracker")
     def test_correct_positive(
@@ -226,7 +227,7 @@ class TestEvaluateTaskLayer1:
         mock_fetch.assert_called_once()
         mock_runner_cls.assert_called_once()
 
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     @patch("seclens.evaluation.runner.EngineLoop")
     @patch("seclens.evaluation.runner.CostTracker")
     def test_correct_negative(
@@ -256,7 +257,7 @@ class TestEvaluateTaskLayer1:
         assert result.scores.earned == 1
         assert result.task_type == TaskType.POST_PATCH
 
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     def test_fetch_error_returns_error_result(
         self,
         mock_fetch: MagicMock,
@@ -273,7 +274,7 @@ class TestEvaluateTaskLayer1:
         assert result.scores.verdict == 0
         assert result.scores.earned == 0
 
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     @patch("seclens.evaluation.runner.EngineLoop")
     @patch("seclens.evaluation.runner.CostTracker")
     def test_parse_failure(
@@ -302,7 +303,7 @@ class TestEvaluateTaskLayer1:
         assert result.parse_result.status == ParseStatus.FAILED
         assert result.scores.verdict == 0
 
-    @patch("seclens.evaluation.runner.fetch_target_code")
+    @patch("seclens.evaluation.runner.fetch_target_file")
     @patch("seclens.evaluation.runner.EngineLoop")
     @patch("seclens.evaluation.runner.CostTracker")
     def test_metrics_populated(
@@ -496,3 +497,106 @@ class TestEvaluateTaskLayer2:
 
         assert result.metrics.tool_calls == 2
         assert result.metrics.turns == 3
+
+
+class TestMakeCostTracker:
+    """Free local providers must skip pricing lookup entirely (no warnings)."""
+
+    @pytest.mark.parametrize(
+        "model",
+        [
+            "ollama/qwen3:8b",
+            "ollama_chat/qwen3:8b",
+            "litellm/ollama/qwen3:8b",
+            "litellm/ollama_chat/qwen3:8b",
+        ],
+    )
+    def test_free_providers_skip_pricing(self, model: str, caplog: pytest.LogCaptureFixture) -> None:
+        cfg = RunConfig(model=model, dataset="x.jsonl", layer="tool-use", mode="guided")
+        with caplog.at_level("WARNING", logger="engine_harness.cost.pricing"):
+            tracker = _make_cost_tracker(cfg)
+        assert tracker.pricing == {}
+        assert tracker.current_cost == 0.0
+        assert not caplog.records
+
+    def test_paid_provider_resolves_pricing(self) -> None:
+        cfg = RunConfig(
+            model="anthropic/claude-sonnet-4-20250514",
+            dataset="x.jsonl", layer="tool-use", mode="guided",
+        )
+        tracker = _make_cost_tracker(cfg)
+        assert tracker.pricing  # resolved from litellm's pricing database
+
+    def test_max_cost_forwarded(self) -> None:
+        cfg = RunConfig(
+            model="ollama/qwen3:8b", dataset="x.jsonl",
+            layer="tool-use", mode="guided", max_cost=5.0,
+        )
+        tracker = _make_cost_tracker(cfg)
+        assert tracker.max_cost == 5.0
+
+
+class TestBuildMetrics:
+    def test_text_fallback_tool_calls_counted(self) -> None:
+        from engine_harness import Message, Role, ToolCall
+
+        from seclens.evaluation.runner import _build_metrics
+
+        result = _make_engineloop_result('{"vulnerable": false}', turns=3)
+        result.messages = [
+            Message(role=Role.USER, content="Analyze"),
+            Message(
+                role=Role.ASSISTANT,
+                content="",
+                tool_calls=[
+                    ToolCall(
+                        id="text-tc-1", name="read_file", arguments={},
+                        metadata={"text_fallback": True},
+                    ),
+                    ToolCall(id="tc-2", name="search", arguments={}),
+                ],
+            ),
+            Message(role=Role.TOOL_RESULT, content="...", tool_call_id="text-tc-1"),
+            Message(
+                role=Role.ASSISTANT,
+                content="",
+                tool_calls=[
+                    ToolCall(
+                        id="text-tc-3", name="read_file", arguments={},
+                        metadata={"text_fallback": True},
+                    ),
+                ],
+            ),
+        ]
+        tracker = MagicMock(current_cost=0.0)
+
+        metrics = _build_metrics(result, tracker)
+
+        assert metrics.text_fallback_tool_calls == 2
+
+    def test_text_fallback_defaults_to_zero(self) -> None:
+        from seclens.evaluation.runner import _build_metrics
+
+        result = _make_engineloop_result('{"vulnerable": false}')
+        tracker = MagicMock(current_cost=0.0)
+
+        metrics = _build_metrics(result, tracker)
+
+        assert metrics.text_fallback_tool_calls == 0
+
+
+class TestRunMetadataThink:
+    def test_think_recorded_from_config(self) -> None:
+        from seclens.evaluation.runner import _build_run_metadata
+
+        cfg = RunConfig(
+            model="ollama/qwen3.5", dataset="x.jsonl",
+            layer="tool-use", mode="guided", think="low",
+        )
+        assert _build_run_metadata(cfg).think == "low"
+
+    def test_think_defaults_to_none(self) -> None:
+        from seclens.evaluation.runner import _build_run_metadata
+
+        cfg = RunConfig(model="ollama/qwen3.5", dataset="x.jsonl", layer="tool-use", mode="guided")
+        assert _build_run_metadata(cfg).think is None

@@ -13,6 +13,7 @@ from engine_harness import (
     Message,
     ModelAdapter,
     ReadFileTool,
+    Role,
     SearchTool,
     ToolLogger,
 )
@@ -21,7 +22,7 @@ import seclens
 from seclens.evaluation.config import RunConfig
 from seclens.schemas.task import EvalLayer
 from seclens.parsing.parser import parse_response
-from seclens.sandbox.manager import SandboxManager, fetch_target_code
+from seclens.sandbox.manager import SandboxManager, fetch_target_file
 from seclens.schemas.output import ParseResult, ParseStatus
 from seclens.schemas.scoring import RunMetadata, TaskMetrics, TaskResult, TaskScore
 from seclens.schemas.task import Task
@@ -52,15 +53,19 @@ def _extract_provider(model_string: str) -> str:
 
 
 # Providers that run locally and have no API pricing.
-_FREE_PROVIDERS = {"ollama"}
+_FREE_PROVIDERS = {"ollama", "ollama_chat"}
 
 
 def _make_cost_tracker(config: RunConfig) -> CostTracker:
     """Create a CostTracker, skipping pricing lookup for free providers."""
     provider = _extract_provider(config.model)
+    model_id = _extract_model_id(config.model)
+    # litellm nests its own provider prefix (e.g. litellm/ollama/qwen3)
+    if provider == "litellm":
+        provider = _extract_provider(model_id)
     if provider in _FREE_PROVIDERS:
         return CostTracker(max_cost=config.max_cost)
-    return CostTracker(model_id=_extract_model_id(config.model), max_cost=config.max_cost)
+    return CostTracker(model_id=model_id, max_cost=config.max_cost)
 
 
 def evaluate_task(
@@ -107,7 +112,7 @@ def _evaluate_layer1(
     """Layer 1: code-in-prompt, single turn, no tools."""
     from seclens.prompts.builder import build_prompt
 
-    code_block = fetch_target_code(
+    code_block = fetch_target_file(
         task.repository.url, task.repository.commit, task.target,
     )
 
@@ -217,6 +222,7 @@ def _build_run_metadata(config: RunConfig) -> RunMetadata:
         seclens_version=seclens.__version__,
         seed=config.seed,
         location_recall_threshold=config.location_recall_threshold,
+        think=config.think,
     )
 
 
@@ -227,6 +233,13 @@ def _build_metrics(
 ) -> TaskMetrics:
     """Extract metrics from loop result and middleware state."""
     usage = result.total_usage
+    text_fallback_calls = sum(
+        1
+        for msg in result.messages
+        if msg.role == Role.ASSISTANT and msg.tool_calls
+        for tc in msg.tool_calls
+        if tc.metadata.get("text_fallback")
+    )
     return TaskMetrics(
         input_tokens=usage.input_tokens if usage else 0,
         output_tokens=usage.output_tokens if usage else 0,
@@ -236,6 +249,7 @@ def _build_metrics(
         total_tokens=(usage.input_tokens + usage.output_tokens) if usage else 0,
         cost_usd=cost_tracker.current_cost,
         tool_calls=len(tool_logger.log) if tool_logger else 0,
+        text_fallback_tool_calls=text_fallback_calls,
         turns=result.turns,
         wall_time_s=result.wall_time_s,
     )

@@ -25,13 +25,16 @@ system: |
   {output_format}
 
 user_l1: |
-  Review the following code from `{file_path}`.
+  Review the function `{function_name}` in `{file_path}` (lines {line_start}-{line_end}).
+
+  Below is the full content of `{file_path}`:
 
   {code_block}
 
-  Apply the methodology above. If you cannot fully determine safety from this code
-  alone, note what additional context would be needed but make your best assessment
-  based on the available evidence.
+  Apply the methodology above to the target function, using the rest of the file as
+  context. If you cannot fully determine safety from this file alone, note what
+  additional context would be needed but make your best assessment based on the
+  available evidence.
 
   Respond with a JSON object as specified.
 

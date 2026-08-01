@@ -118,10 +118,11 @@ class TestBuildPrompt:
         assert "sql_injection" not in system_content
 
     def test_template_vars_filled_l1(self, sample_task: Task) -> None:
-        """L1 user prompt contains code block (no file path in CIP mode)."""
+        """L1 user prompt contains the code block and the target file path."""
         messages = build_prompt(sample_task, preset_name="base", layer=1, code_block="def vulnerable(): pass")
         user_content = messages[1].content
         assert "def vulnerable(): pass" in user_content
+        assert "django/db/models/sql/query.py" in user_content
 
     def test_template_vars_filled_l2(self, sample_task: Task) -> None:
         """L2 user prompt contains function name, file path, and line range."""
@@ -146,6 +147,17 @@ class TestBuildPrompt:
                 assert len(messages) == 2
                 assert messages[0].content
                 assert messages[1].content
+
+    def test_l1_target_function_pointer_all_presets(self, sample_task: Task) -> None:
+        """L1 prompts identify the target function, file path, and line range."""
+        for preset in ["base", "minimal", "security_expert"]:
+            messages = build_prompt(sample_task, preset_name=preset, layer=1, code_block="THE_CODE")
+            user_content = messages[1].content
+            assert "set_values" in user_content, preset
+            assert "django/db/models/sql/query.py" in user_content, preset
+            assert "100" in user_content, preset
+            assert "120" in user_content, preset
+            assert "THE_CODE" in user_content, preset
 
     def test_shared_user_key_fallback(self, sample_task: Task) -> None:
         """Custom preset with shared 'user' key works for both layers."""

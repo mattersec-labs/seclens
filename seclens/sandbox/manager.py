@@ -195,6 +195,17 @@ def fetch_target_code(repo_url: str, commit: str, target: Target) -> str:
         )
 
 
+def fetch_target_file(repo_url: str, commit: str, target: Target) -> str:
+    """Fetch the full contents of the target's file from GitHub.
+
+    Used for Layer 1 evaluation where the whole file is inlined into the
+    prompt; the target function is identified separately via the prompt's
+    function-name and line-range variables.
+    """
+    owner, repo = _parse_github_url(repo_url)
+    return _fetch_file_raw(owner, repo, commit, target.file)
+
+
 def _parse_github_url(repo_url: str) -> tuple[str, str]:
     """Extract owner and repo name from a GitHub URL."""
     parsed = urlparse(repo_url)

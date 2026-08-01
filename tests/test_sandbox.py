@@ -13,6 +13,7 @@ from seclens.sandbox.manager import (
     SandboxManager,
     _parse_github_url,
     fetch_target_code,
+    fetch_target_file,
 )
 from seclens.schemas.task import Target
 
@@ -142,3 +143,16 @@ class TestFetchTargetCode:
 
         assert len(code) > 0
         assert len(code.splitlines()) == target.line_end - target.line_start + 1
+
+
+class TestFetchTargetFile:
+    @patch("seclens.sandbox.manager._fetch_file_raw")
+    def test_returns_full_file_unsliced(self, mock_fetch: MagicMock) -> None:
+        lines = [f"line {i}\n" for i in range(1, 11)]
+        mock_fetch.return_value = "".join(lines)
+
+        target = Target(function="my_func", file="app.py", line_start=3, line_end=5)
+        result = fetch_target_file("https://github.com/owner/repo", "abc123", target)
+
+        assert result == "".join(lines)
+        mock_fetch.assert_called_once_with("owner", "repo", "abc123", "app.py")

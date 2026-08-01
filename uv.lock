@@ -7,6 +7,9 @@ resolution-markers = [
     "sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
+[manifest]
+constraints = [{ name = "litellm", specifier = ">=1.84.0" }]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -373,7 +376,7 @@ wheels = [
 [[package]]
 name = "engine-harness"
 version = "0.1.0"
-source = { git = "https://github.com/mattersec-labs/engine-harness?tag=v0.1.0#b0ca7d3c4518702c5648656020d8fc7cc154ab53" }
+source = { editable = "../engine-harness" }
 dependencies = [
     { name = "pydantic" },
     { name = "tenacity" },
@@ -388,6 +391,30 @@ all = [
     { name = "ollama" },
     { name = "openai" },
 ]
+
+[package.metadata]
+requires-dist = [
+    { name = "anthropic", marker = "extra == 'all'", specifier = ">=0.84" },
+    { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.84" },
+    { name = "google-api-core", marker = "extra == 'all'", specifier = ">=2.24" },
+    { name = "google-api-core", marker = "extra == 'google'", specifier = ">=2.24" },
+    { name = "google-genai", marker = "extra == 'all'", specifier = ">=1.66" },
+    { name = "google-genai", marker = "extra == 'google'", specifier = ">=1.66" },
+    { name = "litellm", marker = "extra == 'all'", specifier = ">=1.84" },
+    { name = "litellm", marker = "extra == 'litellm'", specifier = ">=1.84" },
+    { name = "ollama", marker = "extra == 'all'", specifier = ">=0.6" },
+    { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.6" },
+    { name = "openai", marker = "extra == 'all'", specifier = ">=2.26" },
+    { name = "openai", marker = "extra == 'openai'", specifier = ">=2.26" },
+    { name = "openai", marker = "extra == 'openrouter'", specifier = ">=2.26" },
+    { name = "pydantic", specifier = ">=2.12" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "python-dotenv", marker = "extra == 'dev'", specifier = ">=1.2" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15" },
+    { name = "tenacity", specifier = ">=9.1" },
+]
+provides-extras = ["anthropic", "openai", "google", "ollama", "litellm", "openrouter", "all", "dev"]
 
 [[package]]
 name = "fastuuid"
@@ -771,7 +798,7 @@ wheels = [
 
 [[package]]
 name = "litellm"
-version = "1.82.1"
+version = "1.91.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -787,9 +814,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/bd/6251e9a965ae2d7bc3342ae6c1a2d25dd265d354c502e63225451b135016/litellm-1.82.1.tar.gz", hash = "sha256:bc8427cdccc99e191e08e36fcd631c93b27328d1af789839eb3ac01a7d281890", size = 17197496, upload-time = "2026-03-10T09:10:04.438Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a7/70/1b419158085e0cc1615642dd62c7a5d4c3254db3de77df65dade3b25165b/litellm-1.91.1.tar.gz", hash = "sha256:49a24593df7e37262c52243a8e07572d451d37c100aa1b1f347d80d501d2e386", size = 14872532, upload-time = "2026-07-08T23:07:04.559Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/77/0c6eca2cb049793ddf8ce9cdcd5123a35666c4962514788c4fc90edf1d3b/litellm-1.82.1-py3-none-any.whl", hash = "sha256:a9ec3fe42eccb1611883caaf8b1bf33c9f4e12163f94c7d1004095b14c379eb2", size = 15341896, upload-time = "2026-03-10T09:10:00.702Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/52/166a934d194afcff2a7ec4e1928f1865504ade2e26f62e24d49aaec400d1/litellm-1.91.1-py3-none-any.whl", hash = "sha256:bf8e3d23cddf0eb4c05714dffcaafd8a944adf0f9c9b01c6c863b2637309de2e", size = 16670790, upload-time = "2026-07-08T23:07:01.151Z" },
 ]
 
 [[package]]
@@ -1492,7 +1519,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "datasets", specifier = ">=4.6" },
-    { name = "engine-harness", extras = ["all"], git = "https://github.com/mattersec-labs/engine-harness?tag=v0.1.0" },
+    { name = "engine-harness", extras = ["all"], editable = "../engine-harness" },
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "numpy", specifier = ">=2.4" },
     { name = "pydantic", specifier = ">=2.12" },

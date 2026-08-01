@@ -8,7 +8,9 @@ system: |
   {output_format}
 
 user_l1: |
-  Is the following code from `{file_path}` vulnerable?
+  Is the function `{function_name}` (lines {line_start}-{line_end}) in `{file_path}` vulnerable?
+
+  Full content of `{file_path}`:
 
   {code_block}
 

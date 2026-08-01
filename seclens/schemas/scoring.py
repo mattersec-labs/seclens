@@ -42,6 +42,7 @@ class TaskMetrics(BaseModel):
     total_tokens: int = 0
     cost_usd: float = 0.0
     tool_calls: int = 0
+    text_fallback_tool_calls: int = 0
     turns: int = 0
     wall_time_s: float = 0.0
 
@@ -57,6 +58,7 @@ class RunMetadata(BaseModel):
     seclens_version: str
     seed: int
     location_recall_threshold: float = 1.0
+    think: bool | str | None = None
 
 
 class TaskResult(BaseModel):
