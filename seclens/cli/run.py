@@ -158,6 +158,24 @@ def run_command(
             "thinking-capable models; omit to use the model default.",
         ),
     ] = None,
+    num_ctx: Annotated[
+        Optional[int],
+        typer.Option(
+            "--num-ctx",
+            min=1,
+            help="Context window size for ollama/* models "
+            "(omit to use the model default)",
+        ),
+    ] = None,
+    temperature: Annotated[
+        Optional[float],
+        typer.Option(
+            "--temperature",
+            min=0.0,
+            help="Sampling temperature for ollama/* models "
+            "(omit to use the model default)",
+        ),
+    ] = None,
 ) -> None:
     """Run an evaluation benchmark against a model."""
     from seclens.schemas.task import EvalLayer
@@ -185,6 +203,14 @@ def run_command(
             console.print(f"[red]{exc}[/red]")
             raise typer.Exit(code=1) from None
 
+    if not model.startswith("ollama/"):
+        for flag, value in (("--num-ctx", num_ctx), ("--temperature", temperature)):
+            if value is not None:
+                console.print(
+                    f"[red]{flag} is currently supported only for ollama/* models.[/red]"
+                )
+                raise typer.Exit(code=1)
+
     config = RunConfig(
         model=model,
         dataset=dataset,
@@ -199,6 +225,8 @@ def run_command(
         dry_run=dry_run,
         location_recall_threshold=location_recall_threshold,
         think=think_value,
+        num_ctx=num_ctx,
+        temperature=temperature,
     )
 
     result_filename = _result_filename(config)
@@ -278,6 +306,10 @@ def run_command(
             adapter_kwargs["host"] = host
         if config.think is not None:
             adapter_kwargs["think"] = config.think
+        if config.num_ctx is not None:
+            adapter_kwargs["num_ctx"] = config.num_ctx
+        if config.temperature is not None:
+            adapter_kwargs["temperature"] = config.temperature
     try:
         adapter = create_adapter(config.model, **adapter_kwargs)
     except (ValueError, KeyError, ImportError) as exc:

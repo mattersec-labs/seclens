@@ -260,6 +260,86 @@ class TestRunCommand:
         ])
         assert result.exit_code == 1
 
+    def test_num_ctx_forwarded(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/qwen3:8b", ["--num-ctx", "8192"], tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("ollama/qwen3:8b", num_ctx=8192)
+
+    def test_temperature_forwarded(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/qwen3:8b", ["--temperature", "0.2"], tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("ollama/qwen3:8b", temperature=0.2)
+
+    def test_temperature_zero_forwarded(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/qwen3:8b", ["--temperature", "0.0"], tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with("ollama/qwen3:8b", temperature=0.0)
+
+    def test_num_ctx_and_temperature_combined(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.delenv("OLLAMA_HOST", raising=False)
+        mock_adapter = self._run_and_get_adapter_mock(
+            "ollama/qwen3:8b",
+            ["--num-ctx", "16384", "--temperature", "0.7"],
+            tmp_path, monkeypatch,
+        )
+        mock_adapter.assert_called_once_with(
+            "ollama/qwen3:8b", num_ctx=16384, temperature=0.7,
+        )
+
+    def test_num_ctx_rejected_for_non_ollama_model(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(app, [
+            "run", "--model", "test/model", "--dataset", "x.jsonl",
+            "--num-ctx", "8192",
+        ])
+        assert result.exit_code == 1
+
+    def test_temperature_rejected_for_non_ollama_model(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(app, [
+            "run", "--model", "test/model", "--dataset", "x.jsonl",
+            "--temperature", "0.2",
+        ])
+        assert result.exit_code == 1
+
+    def test_num_ctx_invalid_value_exits(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(app, [
+            "run", "--model", "ollama/qwen3:8b", "--dataset", "x.jsonl",
+            "--num-ctx", "0",
+        ])
+        assert result.exit_code != 0
+
+    def test_temperature_negative_exits(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(app, [
+            "run", "--model", "ollama/qwen3:8b", "--dataset", "x.jsonl",
+            "--temperature", "-0.5",
+        ])
+        assert result.exit_code != 0
+
     @patch("seclens.cli.run.create_adapter")
     @patch("seclens.cli.run.load_dataset")
     @patch("seclens.cli.run.get_completed_ids")
